@@ -1,0 +1,67 @@
+# Screeps Agent Configuration Example
+
+# Screeps server connection
+screeps:
+  server_url: "http://localhost:21025"
+  cli_port: 21026
+  username: "agent1"
+  password: "pass123"
+
+# Runner configuration
+runner:
+  # How often to run scheduled inference (seconds)
+  inference_interval: 30.0
+  
+  # How often to check signals (seconds)
+  signal_check_interval: 1.0
+  
+  # Delay before triggering inference for HIGH priority signals
+  high_priority_delay: 5.0
+  
+  # Rooms to monitor
+  rooms:
+    - "W0N0"
+  
+  # Auto-approve all tool calls
+  yolo: true
+  
+  # Maximum inference duration before timeout
+  max_inference_duration: 120.0
+
+# Custom system prompt (optional - uses default if not set)
+# system_prompt: |
+#   You are a custom AI agent...
+
+# Custom turn prompt template (optional)
+# turn_prompt_template: |
+#   Current tick: ${tick}
+#   ...
+
+# Initial monitors to set up on startup
+initial_monitors:
+  # Alert when creep count is low
+  - name: "low_creeps"
+    description: "Alert when creep count drops below 3"
+    condition: "creep_count < 3"
+    record_fields: ["tick", "creeps"]
+    priority: "high"
+    cooldown: 60.0
+    immediate_inference: false
+  
+  # Alert on energy shortage
+  - name: "energy_critical"
+    description: "Alert when no energy available in spawns"
+    condition: "all(s.get('store', {}).get('energy', 0) == 0 for s in spawns.values())"
+    record_fields: ["tick", "spawns"]
+    priority: "critical"
+    cooldown: 30.0
+    immediate_inference: true
+  
+  # Periodic checkpoint every 100 ticks
+  - name: "periodic_checkpoint"
+    description: "Record state every 100 ticks"
+    condition: "tick % 100 == 0"
+    record_fields: ["tick", "creeps", "spawns", "structures"]
+    priority: "low"
+    cooldown: 0.0
+    immediate_inference: false

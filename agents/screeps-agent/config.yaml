@@ -1,0 +1,56 @@
+# Screeps Multi-Agent Configuration
+# 
+# 注意：除账户信息外，所有游戏数据（房间、建筑等）都在运行时动态获取
+
+# 服务器配置
+server:
+  server_url: "http://localhost:21025"
+  cli_port: 21026
+
+# 运行器配置
+runner:
+  inference_interval: 30.0      # 推理间隔（秒）
+  signal_check_interval: 1.0    # 信号检查间隔（秒）
+  high_priority_delay: 5.0      # 高优先级信号延迟（秒）
+  yolo: true                    # 自动批准工具调用
+  max_inference_duration: 120.0 # 最大推理时长（秒）
+
+# Agent 配置（仅账户和模型）
+agents:
+  - name: "kimi"
+    username: "kimi"
+    password: "kimi123"
+    model: "kimi-latest"
+  
+  - name: "claude"
+    username: "claude"
+    password: "claude123"
+    model: "claude-sonnet-4-20250514"
+  
+  - name: "gpt"
+    username: "gpt"
+    password: "gpt123"
+    model: "gpt-4o"
+  
+  - name: "gemini"
+    username: "gemini"
+    password: "gemini123"
+    model: "gemini-2.5-pro"
+
+# 初始监控（所有 Agent 共享）
+initial_monitors:
+  # 低 creep 数量告警
+  - name: "low_creeps"
+    description: "Creep 数量过低时告警"
+    condition: "creep_count < 2"
+    priority: "high"
+    cooldown: 60.0
+    immediate_inference: false
+  
+  # 能量耗尽告警
+  - name: "energy_critical"
+    description: "Spawn 能量耗尽时告警"
+    condition: "all(s.get('store', {}).get('energy', 0) == 0 for s in spawns.values()) if spawns else False"
+    priority: "critical"
+    cooldown: 30.0
+    immediate_inference: true
