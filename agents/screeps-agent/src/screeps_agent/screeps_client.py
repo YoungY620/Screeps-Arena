@@ -217,8 +217,15 @@ class ScreepsAPI:
         return False
     
     def _auth_headers(self) -> dict[str, str]:
+        """Get authentication headers for API requests.
+        
+        passport-token strategy requires both X-Token and X-Username headers.
+        """
         if self._token:
-            return {"X-Token": self._token}
+            return {
+                "X-Token": self._token,
+                "X-Username": self.account.username,
+            }
         return {}
     
     async def get_me(self) -> dict[str, Any]:
@@ -238,7 +245,10 @@ class ScreepsAPI:
         return {}
     
     async def get_memory(self, path: str = "") -> dict[str, Any]:
-        """Get user memory at path."""
+        """Get user memory at path.
+        
+        The server returns memory as gzip-compressed JSON with prefix 'gz:'.
+        """
         session = await self._get_session()
         try:
             params = {"path": path} if path else {}
@@ -248,9 +258,23 @@ class ScreepsAPI:
                 headers=self._auth_headers(),
             ) as resp:
                 if resp.status == 200:
-                    return await resp.json()
-        except aiohttp.ClientError:
-            pass
+                    result = await resp.json()
+                    data = result.get("data", "")
+                    if isinstance(data, str) and data.startswith("gz:"):
+                        # Decode gzip compressed memory
+                        compressed = base64.b64decode(data[3:])
+                        decompressed = gzip.decompress(compressed)
+                        return json.loads(decompressed.decode("utf-8"))
+                    elif isinstance(data, dict):
+                        return data
+                    elif data:
+                        # Try to parse as JSON
+                        try:
+                            return json.loads(data)
+                        except (json.JSONDecodeError, TypeError):
+                            pass
+        except (aiohttp.ClientError, gzip.BadGzipFile, json.JSONDecodeError) as e:
+            print(f"get_memory error: {e}")
         return {}
     
     async def set_memory(self, path: str, value: Any) -> bool:
@@ -283,17 +307,24 @@ class ScreepsAPI:
         return {}
     
     async def upload_code(self, modules: dict[str, str], branch: str = "default") -> bool:
-        """Upload code modules."""
+        """Upload code modules using Basic Auth (required by screepsmod-auth)."""
         session = await self._get_session()
+        # Use Basic Auth for code upload (screepsmod-auth requirement)
+        auth = aiohttp.BasicAuth(self.account.username, self.account.password)
         try:
             async with session.post(
                 f"{self.server_url}/api/user/code",
                 json={"branch": branch, "modules": modules},
-                headers=self._auth_headers(),
+                auth=auth,
             ) as resp:
-                return resp.status == 200
-        except aiohttp.ClientError:
-            pass
+                if resp.status == 200:
+                    return True
+                # Log error for debugging
+                text = await resp.text()
+                print(f"Code upload failed: {resp.status} - {text}")
+                return False
+        except aiohttp.ClientError as e:
+            print(f"Code upload error: {e}")
         return False
     
     async def get_room_overview(self, room: str, interval: int = 8) -> dict[str, Any]:
