@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import time
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
@@ -16,6 +18,7 @@ from kimi_cli.wire.types import WireMessage
 
 from .config import AgentAccount, RunnerConfig, ServerConfig
 from .monitors.signal import SignalManager, SignalPriority, SignalRecord
+from .observability import InferenceLogger, get_logger_for_agent
 from .prompts.base import PromptContext, ScreepsPromptManager
 from .screeps_client import AccountConfig, GameState, ScreepsClient
 
@@ -31,12 +34,14 @@ class InferenceState(Enum):
 class InferenceResult:
     """Result of an inference run."""
     
+    session_id: str  # Unique ID for this inference session
     completed: bool
     cancelled: bool
     messages: list[WireMessage]
     duration: float
     trigger: str  # "scheduled", "signal:<name>", "manual"
     error: str | None = None
+    code_uploaded: str | None = None  # Screeps code that was uploaded
 
 
 class ScreepsAgentRunner:
@@ -73,12 +78,16 @@ class ScreepsAgentRunner:
         )
         self.signal_manager = SignalManager()
         
+        # Observability - each agent gets its own database
+        self.logger = get_logger_for_agent(agent_account.name)
+        
         # KimiCLI instance (lazy init)
         self._kimi_cli: KimiCLI | None = None
         self._session: Session | None = None
         
         # State
         self._state = InferenceState.IDLE
+        self._current_session_id: str | None = None
         self._current_task: asyncio.Task | None = None
         self._cancel_event = asyncio.Event()
         self._stop_event = asyncio.Event()
@@ -240,12 +249,40 @@ class ScreepsAgentRunner:
         self,
         prompt: str,
         trigger: str,
+        game_state: GameState | None = None,
+        system_prompt: str | None = None,
     ) -> InferenceResult:
-        """Run a single inference cycle."""
+        """Run a single inference cycle with full observability logging."""
         start_time = time.time()
         messages: list[WireMessage] = []
         error: str | None = None
         cancelled = False
+        code_uploaded: str | None = None
+        
+        # Generate unique session ID
+        session_id = f"{self.agent.name}_{int(time.time())}_{uuid.uuid4().hex[:8]}"
+        self._current_session_id = session_id
+        
+        # Start logging session
+        game_tick = game_state.tick if game_state else None
+        game_state_dict = {
+            "tick": game_state.tick,
+            "owned_rooms": game_state.owned_rooms,
+            "creep_count": len(game_state.creeps),
+            "spawn_count": len(game_state.spawns),
+        } if game_state else None
+        
+        self.logger.start_session(
+            session_id=session_id,
+            trigger=trigger,
+            game_tick=game_tick,
+            system_prompt=system_prompt,
+            user_prompt=prompt,
+            game_state=game_state_dict,
+        )
+        
+        # Log the user prompt
+        self.logger.log_message(session_id, "user", prompt)
         
         try:
             self._state = InferenceState.RUNNING
@@ -255,6 +292,7 @@ class ScreepsAgentRunner:
                 await cb()
             
             kimi = await self._get_kimi_cli()
+            step_count = 0
             
             async for msg in kimi.run(
                 prompt,
@@ -262,6 +300,16 @@ class ScreepsAgentRunner:
                 merge_wire_messages=True,
             ):
                 messages.append(msg)
+                step_count += 1
+                
+                # Log the message based on its type
+                self._log_wire_message(session_id, msg, step_count)
+                
+                # Track if code was uploaded
+                if hasattr(msg, 'tool_use') and msg.tool_use:
+                    for tool in msg.tool_use:
+                        if tool.name == "WriteFile" and "screeps" in str(tool.input).lower():
+                            code_uploaded = str(tool.input.get("content", ""))[:1000]
                 
                 if self._cancel_event.is_set():
                     cancelled = True
@@ -273,22 +321,97 @@ class ScreepsAgentRunner:
             error = str(e)
         finally:
             self._state = InferenceState.IDLE
+            self._current_session_id = None
         
         duration = time.time() - start_time
         
+        # Extract final response from messages
+        final_response = self._extract_final_response(messages)
+        
+        # End logging session
+        status = "cancelled" if cancelled else ("failed" if error else "completed")
+        self.logger.end_session(
+            session_id=session_id,
+            status=status,
+            final_response=final_response,
+            code_uploaded=code_uploaded,
+            error_message=error,
+        )
+        
         result = InferenceResult(
+            session_id=session_id,
             completed=not cancelled and error is None,
             messages=messages,
             cancelled=cancelled,
             duration=duration,
             trigger=trigger,
             error=error,
+            code_uploaded=code_uploaded,
         )
         
         for cb in self._on_inference_end:
             await cb(result)
         
         return result
+    
+    def _log_wire_message(self, session_id: str, msg: WireMessage, step: int) -> None:
+        """Log a WireMessage to the observability database."""
+        try:
+            # Handle thinking/reasoning content
+            if hasattr(msg, 'thinking') and msg.thinking:
+                for block in msg.thinking:
+                    if hasattr(block, 'thinking') and block.thinking:
+                        self.logger.log_thinking(session_id, block.thinking)
+            
+            # Handle text content (assistant message)
+            if hasattr(msg, 'content') and msg.content:
+                for block in msg.content:
+                    if hasattr(block, 'text') and block.text:
+                        self.logger.log_message(session_id, "assistant", block.text)
+            
+            # Handle tool use
+            if hasattr(msg, 'tool_use') and msg.tool_use:
+                for tool in msg.tool_use:
+                    tool_input = {}
+                    if hasattr(tool, 'input'):
+                        tool_input = tool.input if isinstance(tool.input, dict) else {"raw": str(tool.input)}
+                    self.logger.log_tool_call(
+                        session_id=session_id,
+                        tool_name=tool.name,
+                        tool_input=tool_input,
+                    )
+            
+            # Handle tool results
+            if hasattr(msg, 'tool_result') and msg.tool_result:
+                for result in msg.tool_result:
+                    output = ""
+                    error = None
+                    if hasattr(result, 'content'):
+                        if isinstance(result.content, str):
+                            output = result.content
+                        elif isinstance(result.content, list):
+                            output = "\n".join(str(c) for c in result.content)
+                    if hasattr(result, 'is_error') and result.is_error:
+                        error = output
+                        output = None
+                    self.logger.log_tool_result(
+                        session_id=session_id,
+                        tool_name=getattr(result, 'tool_use_id', 'unknown'),
+                        output=output,
+                        error=error,
+                    )
+        except Exception:
+            # Don't let logging errors break inference
+            pass
+    
+    def _extract_final_response(self, messages: list[WireMessage]) -> str | None:
+        """Extract the final text response from messages."""
+        for msg in reversed(messages):
+            if hasattr(msg, 'content') and msg.content:
+                for block in msg.content:
+                    if hasattr(block, 'text') and block.text:
+                        return block.text[:2000]  # Limit length
+        return None
     
     async def cancel_current_inference(self) -> bool:
         """Cancel the currently running inference."""
@@ -335,7 +458,7 @@ class ScreepsAgentRunner:
             prompt = self.prompt_manager.render_turn_prompt(context)
             trigger = "manual"
         
-        return await self._run_inference(prompt, trigger)
+        return await self._run_inference(prompt, trigger, game_state=state)
     
     async def _signal_monitor_loop(self):
         """Background loop that monitors signals."""
@@ -408,7 +531,7 @@ class ScreepsAgentRunner:
                 
                 self._last_inference_time = time.time()
                 self._current_task = asyncio.create_task(
-                    self._run_inference(prompt, "scheduled")
+                    self._run_inference(prompt, "scheduled", game_state=state)
                 )
                 await self._current_task
             
@@ -450,6 +573,6 @@ class ScreepsAgentRunner:
             context = await self._build_context(state)
             prompt = self.prompt_manager.render_turn_prompt(context)
             
-            return await self._run_inference(prompt, "manual")
+            return await self._run_inference(prompt, "manual", game_state=state)
         finally:
             await self.screeps_client.close()
