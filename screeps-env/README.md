@@ -24,23 +24,23 @@ nvm install 20
 ### 1. 首次安装
 
 ```bash
-./scripts/setup.sh
+./setup.sh
 ```
 
 ### 2. 启动服务
 
 ```bash
 # 启动服务器（终端 1）
-./scripts/start.sh
+./start.sh
 
 # 启动 Web 客户端（终端 2）
-./scripts/start-client.sh
+./start-client.sh
 ```
 
 或使用便捷脚本：
 ```bash
-./scripts/restart.sh          # 重启所有服务
-./scripts/stop.sh             # 停止所有服务
+./restart.sh          # 重启所有服务
+./stop.sh             # 停止所有服务
 ```
 
 ### 3. 访问游戏
@@ -55,10 +55,10 @@ http://localhost:8080/(http://localhost:21025)/
 ### 4. 注册用户
 
 ```bash
-./scripts/add-agent.sh <用户名> <密码>
+./add-agent.sh <用户名> <密码>
 
 # 示例
-./scripts/add-agent.sh agent1 pass123
+./add-agent.sh agent1 pass123
 ```
 
 > 不需要邮箱验证，用户名即可登录。
@@ -66,19 +66,19 @@ http://localhost:8080/(http://localhost:21025)/
 ### 5. 创建殖民地
 
 ```bash
-./scripts/spawn-colony.sh <用户名> <房间>
+./spawn-colony.sh <用户名> <房间>
 
 # 示例
-./scripts/spawn-colony.sh agent1 W0N0
+./spawn-colony.sh agent1 W0N0
 ```
 
 ### 6. 上传代码
 
 ```bash
-./scripts/upload-code.sh <用户名> <密码> <代码文件>
+./upload-code.sh <用户名> <密码> <代码文件>
 
 # 示例
-./scripts/upload-code.sh agent1 pass123 agents/main.js
+./upload-code.sh agent1 pass123 agents/main.js
 ```
 
 ## 查看历史录制
@@ -108,14 +108,16 @@ http://localhost:8080/(http://localhost:21025)/
 | `spawn-colony.sh` | 为用户创建殖民地 |
 | `upload-code.sh` | 上传用户代码 |
 
+所有脚本位于 `screeps-env/` 目录根下。
+
 ## CLI 管理
 
 ```bash
 # 交互模式
-./scripts/cli.sh
+./cli.sh
 
 # 执行单个命令
-./scripts/cli.sh "help()"
+./cli.sh "help()"
 ```
 
 常用命令：
@@ -154,7 +156,7 @@ system.resetAllData()
 ## 目录结构
 
 ```
-├── scripts/          # 操作脚本
+├── *.sh              # 操作脚本
 ├── server/           # 服务器数据和配置
 │   ├── .screepsrc    # 服务器配置
 │   ├── config.yml    # 游戏常量配置

@@ -1,7 +1,7 @@
 #!/bin/bash
 # 初始化 3x3 随机地图（激进资源）
 
-cd "$(dirname "$0")/../server"
+cd "$(dirname "$0")/./server"
 
 echo "=== 初始化 3x3 地图 ==="
 

@@ -1,13 +1,13 @@
 # 依赖
 node_modules/
 
-# 服务器数据（运行时生成）
-server/db.json
-server/history.db
-server/history/
-server/logs/
-server/.cli_history
-server/assets/
+# Screeps 服务器数据（运行时生成）
+screeps-env/server/db.json
+screeps-env/server/history.db
+screeps-env/server/history/
+screeps-env/server/logs/
+screeps-env/server/.cli_history
+screeps-env/server/assets/
 
 # 录制输出
 recordings/
@@ -22,4 +22,3 @@ recordings/
 
 # npm
 package-lock.json
-server/package-lock.json

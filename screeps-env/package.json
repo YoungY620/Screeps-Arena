@@ -1,0 +1,10 @@
+{
+  "name": "screeps-env",
+  "version": "1.0.0",
+  "description": "Screeps 私服环境",
+  "private": true,
+  "dependencies": {
+    "screeps-api": "^1.16.1",
+    "screepers-steamless-client": "^1.5.2"
+  }
+}

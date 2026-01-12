@@ -2,7 +2,7 @@
 # 安装 Screeps 服务器和依赖
 
 set -e
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")"
 
 echo "=== 检查环境 ==="
 
@@ -68,4 +68,4 @@ sed -i '' 's/steam_api_key = .*/steam_api_key = PLACEHOLDER/' .screepsrc 2>/dev/
 
 echo ""
 echo "=== 安装完成 ==="
-echo "运行 ./scripts/start.sh 启动服务器"
+echo "运行 ./start.sh 启动服务器"

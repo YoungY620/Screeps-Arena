@@ -11,7 +11,7 @@ AGENT_NAME="$1"
 PASSWORD="$2"
 CODE_FILE="$3"
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")"
 
 # 使用 Node 12
 source ~/.nvm/nvm.sh && nvm use 12 > /dev/null 2>&1

@@ -1,7 +1,7 @@
 #!/bin/bash
 # 启动 Screeps 服务器
 
-cd "$(dirname "$0")/../server"
+cd "$(dirname "$0")/server"
 
 # 设置环境
 source ~/.nvm/nvm.sh && nvm use 12

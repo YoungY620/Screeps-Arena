@@ -1,7 +1,7 @@
 #!/bin/bash
 # 启动 Web 客户端 (steamless-client)
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")"
 
 source ~/.nvm/nvm.sh && nvm use 20 > /dev/null 2>&1
 

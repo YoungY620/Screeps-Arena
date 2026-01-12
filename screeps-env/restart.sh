@@ -2,7 +2,7 @@
 # 重启所有 Screeps 服务
 # 用法: ./restart.sh [--server-only]
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")"
 
 echo "=== 停止服务 ==="
 pkill -9 -f "screeps" 2>/dev/null && echo "已停止 screeps"
@@ -11,13 +11,13 @@ sleep 2
 
 echo ""
 echo "=== 启动服务器 ==="
-./scripts/start.sh &
+./start.sh &
 sleep 5
 
 if [ "$1" != "--server-only" ]; then
   echo ""
   echo "=== 启动客户端 ==="
-  ./scripts/start-client.sh &
+  ./start-client.sh &
   sleep 3
 fi
 
