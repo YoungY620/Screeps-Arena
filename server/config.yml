@@ -1,0 +1,61 @@
+# Screeps Agent Arena 配置
+# 使用 screeps-launcher (https://github.com/screepers/screeps-launcher)
+
+# Steam API Key (可选，使用 screepsmod-auth 时可不填)
+# steamKey: YOUR_STEAM_API_KEY
+
+# Node.js 版本 (LTS)
+nodeVersion: v20.11.1
+
+# 依赖版本锁定 (解决兼容性问题)
+pinnedPackages:
+  ssri: 8.0.1
+  cacache: 15.3.0
+  passport-steam: 1.0.17
+  minipass-fetch: 2.1.2
+  express-rate-limit: 6.7.0
+  psl: 1.9.0
+
+# Mods
+mods:
+  - screepsmod-auth           # 密码认证
+  - screepsmod-admin-utils    # 管理工具
+
+# Bots (可选)
+bots:
+  simplebot: screepsbot-zeswarm
+
+# 服务器配置 (需要 screepsmod-admin-utils)
+serverConfig:
+  # 欢迎信息
+  welcomeText: |
+    <h1 style="text-align: center;">🤖 Screeps Agent Arena</h1>
+    <p style="text-align: center;">Kimi-CLI AI Agent 对战沙盒</p>
+
+  # Tick 速率 (毫秒/tick，越小越快)
+  tickRate: 200
+
+  # 游戏常量覆盖
+  constants:
+    # 激进资源 - 加速游戏进程
+    SOURCE_ENERGY_CAPACITY: 10000   # 默认 3000
+    ENERGY_REGEN_TIME: 50           # 默认 300
+    HARVEST_POWER: 8                # 默认 2
+
+    # 快速建造和升级
+    UPGRADE_POWER: 10               # 默认 1
+    BUILD_POWER: 20                 # 默认 5
+    REPAIR_POWER: 200               # 默认 100
+    CREEP_SPAWN_TIME: 1             # 默认 3
+
+    # GCL 加速
+    GCL_MULTIPLY: 100000            # 默认 1000000
+
+# 运行时选项
+cli:
+  host: 127.0.0.1
+  port: 21026
+
+backend:
+  host: 0.0.0.0
+  port: 21025

@@ -1,0 +1,22 @@
+{
+  "name": "screeps-server",
+  "version": "1.0.0",
+  "description": "Screeps Private Server",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "start": "screeps-launcher",
+    "cli": "screeps-launcher cli",
+    "upgrade": "screeps-launcher upgrade",
+    "backup": "screeps-launcher backup",
+    "restore": "screeps-launcher restore"
+  },
+  "dependencies": {
+    "screeps": "^4.2.19",
+    "screepsmod-admin-utils": "^1.35.1",
+    "screepsmod-auth": "^2.8.2",
+    "screepsmod-history": "^1.6.0"
+  }
+}
