@@ -8,6 +8,7 @@ screeps-env/server/history/
 screeps-env/server/logs/
 screeps-env/server/.cli_history
 screeps-env/server/assets/
+screeps-env/server/setup_game.js
 
 # 录制输出
 recordings/
@@ -22,3 +23,39 @@ recordings/
 
 # npm
 package-lock.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Agent config with secrets
+agents/*/config.yaml

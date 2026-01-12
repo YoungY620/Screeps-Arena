@@ -78,7 +78,25 @@ class ScreepsCLI:
             sock.settimeout(timeout)
             try:
                 sock.connect((self.host, self.port))
+                
+                # First, consume the welcome message
+                welcome = b""
+                while True:
+                    try:
+                        chunk = sock.recv(4096)
+                        if not chunk:
+                            break
+                        welcome += chunk
+                        # Welcome message ends with "commands.\n"
+                        if b"commands." in welcome:
+                            break
+                    except socket.timeout:
+                        break
+                
+                # Now send the actual command
                 sock.sendall((command + "\n").encode())
+                
+                # Read the response
                 response = b""
                 while True:
                     try:
@@ -86,7 +104,8 @@ class ScreepsCLI:
                         if not chunk:
                             break
                         response += chunk
-                        if b"\n> " in response or b"< " in response:
+                        # Response ends with newline and prompt
+                        if b"\n< " in response or (b"< " in response and response.endswith(b"\n")):
                             break
                     except socket.timeout:
                         break
@@ -95,6 +114,27 @@ class ScreepsCLI:
                 sock.close()
         
         return await loop.run_in_executor(None, _execute_sync)
+    
+    def _parse_json_response(self, result: str, default: Any) -> Any:
+        """Parse JSON from CLI response."""
+        for line in result.split("\n"):
+            line = line.strip()
+            # Remove leading "< " prompt
+            if line.startswith("< "):
+                line = line[2:].strip()
+            # Handle single-quoted JSON strings (JS outputs 'json' instead of json)
+            if line.startswith("'") and line.endswith("'"):
+                line = line[1:-1]
+            # Handle double-quoted JSON strings
+            elif line.startswith('"') and line.endswith('"'):
+                line = line[1:-1].replace('\\"', '"')
+            # Try to parse if it looks like JSON
+            if line.startswith("{") or line.startswith("["):
+                try:
+                    return json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+        return default
     
     async def get_tick(self) -> int:
         """Get current game tick."""
@@ -110,67 +150,32 @@ class ScreepsCLI:
     
     async def get_user_info(self, username: str) -> dict[str, Any]:
         """Get user info including ID and owned rooms."""
-        cmd = f"JSON.stringify(storage.db.users.findOne({{username: '{username}'}}))"
+        # Use .then() because findOne returns a Promise
+        cmd = f"storage.db.users.findOne({{username: '{username}'}}).then(u => JSON.stringify(u))"
         result = await self.execute(cmd, timeout=3.0)
-        try:
-            for line in result.split("\n"):
-                line = line.strip()
-                if line.startswith("< "):
-                    line = line[2:].strip()
-                if line.startswith("{") or line.startswith('"'):
-                    # Remove surrounding quotes if present
-                    if line.startswith('"') and line.endswith('"'):
-                        line = line[1:-1].replace('\\"', '"')
-                    return json.loads(line)
-        except (json.JSONDecodeError, ValueError):
-            pass
-        return {}
+        return self._parse_json_response(result, {})
     
     async def get_user_rooms(self, user_id: str) -> list[str]:
         """Get all rooms owned by a user."""
         # Query rooms.objects for controllers owned by this user
-        cmd = f"JSON.stringify(storage.db['rooms.objects'].find({{type: 'controller', user: '{user_id}'}}).map(c => c.room))"
+        # Use .then() because find returns a Promise
+        cmd = f"storage.db['rooms.objects'].find({{type: 'controller', user: '{user_id}'}}).then(r => JSON.stringify(r.map(c => c.room)))"
         result = await self.execute(cmd, timeout=3.0)
-        try:
-            for line in result.split("\n"):
-                line = line.strip()
-                if line.startswith("< "):
-                    line = line[2:].strip()
-                if line.startswith("["):
-                    return json.loads(line)
-        except (json.JSONDecodeError, ValueError):
-            pass
-        return []
+        return self._parse_json_response(result, [])
     
     async def get_room_objects(self, room: str) -> list[dict[str, Any]]:
         """Get all objects in a room."""
-        cmd = f"JSON.stringify(storage.db['rooms.objects'].find({{room: '{room}'}}))"
+        # Use .then() because find returns a Promise
+        cmd = f"storage.db['rooms.objects'].find({{room: '{room}'}}).then(r => JSON.stringify(r))"
         result = await self.execute(cmd, timeout=5.0)
-        try:
-            for line in result.split("\n"):
-                line = line.strip()
-                if line.startswith("< "):
-                    line = line[2:].strip()
-                if line.startswith("["):
-                    return json.loads(line)
-        except (json.JSONDecodeError, ValueError):
-            pass
-        return []
+        return self._parse_json_response(result, [])
     
     async def get_room_terrain(self, room: str) -> dict[str, Any]:
         """Get room terrain data."""
-        cmd = f"JSON.stringify(storage.db['rooms.terrain'].findOne({{room: '{room}'}}))"
+        # Use .then() because findOne returns a Promise
+        cmd = f"storage.db['rooms.terrain'].findOne({{room: '{room}'}}).then(t => JSON.stringify(t))"
         result = await self.execute(cmd, timeout=3.0)
-        try:
-            for line in result.split("\n"):
-                line = line.strip()
-                if line.startswith("< "):
-                    line = line[2:].strip()
-                if line.startswith("{"):
-                    return json.loads(line)
-        except (json.JSONDecodeError, ValueError):
-            pass
-        return {}
+        return self._parse_json_response(result, {})
 
 
 class ScreepsAPI:

@@ -1,10 +1,7 @@
 {
   "mods": [
-    "node_modules/screepsmod-auth",
-    "node_modules/screepsmod-admin-utils",
-    "node_modules/screepsmod-history"
+    "node_modules/screepsmod-auth/index.js",
+    "node_modules/screepsmod-admin-utils/index.js"
   ],
-  "bots": {
-    "simplebot": "node_modules/@screeps/simplebot/src"
-  }
+  "bots": {}
 }
