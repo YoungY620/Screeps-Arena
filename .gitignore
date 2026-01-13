@@ -20,6 +20,7 @@ recordings/
 # 系统文件
 .DS_Store
 *.log
+Thumbs.db
 
 # npm
 package-lock.json
@@ -30,7 +31,6 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
 develop-eggs/
 dist/
 downloads/
@@ -46,6 +46,9 @@ wheels/
 .installed.cfg
 *.egg
 
+# Build artifacts (node-gyp)
+build/
+
 # Virtual environments
 .venv/
 venv/
@@ -56,10 +59,11 @@ ENV/
 .vscode/
 *.swp
 *.swo
+*~
 
 # Agent config with secrets
 agents/*/config.yaml
-agents/screeps-agent/data
+
 # Agent 运行时数据
 agents/screeps-agent/data/
 agents/screeps-agent/workspace/
