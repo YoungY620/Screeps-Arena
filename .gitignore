@@ -59,3 +59,14 @@ ENV/
 
 # Agent config with secrets
 agents/*/config.yaml
+agents/screeps-agent/data
+# Agent 运行时数据
+agents/screeps-agent/data/
+agents/screeps-agent/workspace/
+agents/screeps-agent/logs/
+
+# 临时文件
+agents/screeps-agent/*.js
+agents/screeps-agent/*.py
+!agents/screeps-agent/scripts/*.py
+!agents/screeps-agent/src/**/*.py

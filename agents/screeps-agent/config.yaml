@@ -20,22 +20,22 @@ agents:
   - name: "kimi"
     username: "kimi"
     password: "kimi123"
-    model: "kimi-latest"
+    model: "kimi-k2-turbo-preview"
   
   - name: "claude"
     username: "claude"
     password: "claude123"
-    model: "claude-sonnet-4-20250514"
+    model: "claude-sonnet-4"
   
   - name: "gpt"
     username: "gpt"
     password: "gpt123"
-    model: "gpt-4o"
+    model: "gpt-5"
   
   - name: "gemini"
     username: "gemini"
     password: "gemini123"
-    model: "gemini-2.5-pro"
+    model: "gemini-3-pro"
 
 # 初始监控（所有 Agent 共享）
 initial_monitors:

@@ -1,170 +1,152 @@
-# Screeps Multi-Agent
+# Screeps AI Agent
 
-基于 kimi-cli 二次开发的 Screeps 游戏多 AI Agent 框架。
+Multi-agent framework for Screeps using KimiCLI.
 
-## 设计原则
-
-1. **最小配置**: 只配置账户名、密码、模型，其他全部动态获取
-2. **多 Agent 并行**: 每个 Agent 独立运行，使用各自的模型
-3. **动态数据**: 房间、建筑、位置等全部运行时获取
-
-## 项目结构
+## Architecture
 
 ```
 screeps-agent/
-├── pyproject.toml           # 项目配置
-├── config.yaml              # 多 Agent 配置（实际使用）
-├── config.example.yaml      # 示例配置
-├── README.md                # 用户文档
-├── AGENTS.md                # 开发者文档
+├── config.yaml           # Server + agents config
+├── data/                 # JSONL logs (per agent)
+├── workspace/            # Agent code directories (per agent)
+├── logs/                 # Runtime logs
+├── scripts/
+│   ├── run_all_agents.py # Entry point
+│   ├── report.py         # Generate summary report
+│   └── query_logs.py     # Query JSONL logs
 └── src/screeps_agent/
-    ├── __init__.py
-    ├── main.py              # CLI 入口（支持多 Agent）
-    ├── config.py            # 配置管理（MultiAgentConfig）
-    ├── multi_agent.py       # 多 Agent 管理器
-    ├── runner.py            # 单 Agent 运行器
-    ├── screeps_client.py    # Screeps 服务器交互
-    ├── prompts/
-    │   └── base.py          # 提示词模板系统
-    ├── monitors/
-    │   └── signal.py        # 信号监控系统
-    └── tools/
-        └── kimi_tools.py    # kimi-cli 兼容工具
+    └── agent.py          # All code (~350 lines)
 ```
 
-## 核心模块
+## Key Components
 
-### MultiAgentManager (multi_agent.py)
-
-管理多个 Agent 并行运行：
+### agent.py Structure
 
 ```python
-manager = MultiAgentManager(config)
-await manager.start_all()  # 启动所有 Agent
-await manager.stop_all()   # 停止所有 Agent
+# CLI Client (lines 55-95)
+def cli_exec_sync(host, port, cmd)  # Socket connection, IPv6/IPv4 fallback
+async def cli_exec(host, port, cmd) # Async wrapper
+
+# Logger (lines 110-125)
+class Logger                         # JSONL logging to data/<agent>.jsonl
+
+# Prompt Template (lines 128-180)
+PROMPT_TEMPLATE                      # System prompt with workspace + CLI examples
+
+# Agent Class (lines 185-310)
+class Agent:
+    __init__()                       # Setup workspace, logger
+    _init_kimi()                     # Create KimiCLI session (once, reused)
+    _get_info()                      # Fetch user ID and room from CLI
+    _get_tick()                      # Get current game tick
+    _build_prompt(tick)              # Format prompt template
+    _inference(prompt)               # Run LLM, log messages
+    run()                            # Main loop
+
+# Entry Point (lines 315-350)
+async def main()                     # Load config, create agents, run
 ```
 
-### ScreepsAgentRunner (runner.py)
+## Run
 
-单个 Agent 的运行器：
-- 定时推理循环（默认 30s）
-- 信号监控循环（默认 1s）
-- 支持推理取消/重启
+```bash
+# Background
+nohup uv run python scripts/run_all_agents.py > logs/agents.log 2>&1 &
 
-### ScreepsClient (screeps_client.py)
-
-Screeps 服务器交互，**动态获取所有数据**：
-
-```python
-client = ScreepsClient(server_url, cli_port, account)
-await client.connect()
-
-# 自动发现玩家拥有的房间
-rooms = await client.discover_rooms()
-
-# 获取完整游戏状态（自动包含所有房间）
-state = await client.get_game_state()
-# state.owned_rooms: ['W0N0', 'W1N0', ...]
-# state.creeps: {id: {...}, ...}
-# state.spawns: {id: {...}, ...}
-# state.sources: {id: {...}, ...}
+# Stop
+pkill -f run_all_agents
 ```
 
-## 配置结构
+## Config
 
 ```yaml
-# 服务器配置（共享）
 server:
   server_url: "http://localhost:21025"
   cli_port: 21026
 
-# 运行配置（共享）
 runner:
   inference_interval: 30.0
+  yolo: true
 
-# Agent 配置（仅账户和模型）
 agents:
   - name: "kimi"
     username: "kimi"
     password: "kimi123"
-    model: "kimi-latest"  # 使用 kimi 模型
-  
-  - name: "claude"
-    username: "claude"
-    password: "claude123"
-    model: "claude-sonnet-4-20250514"  # 使用 claude 模型
-
-# 初始监控（共享）
-initial_monitors:
-  - name: "low_creeps"
-    condition: "creep_count < 2"
-    priority: "high"
+    model: "kimi-k2-turbo-preview"
 ```
 
-## 动态数据获取流程
+## Agent Workflow
 
-```
-1. Agent 启动
-   └─> ScreepsClient.connect()
-       └─> API 认证获取 token
-       └─> 获取 user_id
+1. **Init**: Create workspace dir, KimiCLI session
+2. **Loop**:
+   - Get tick from CLI
+   - Build prompt with workspace path + CLI examples
+   - Run LLM inference (same session, history preserved)
+   - Agent uses Shell/WriteFile tools
+   - Wait 30 seconds
 
-2. 发现房间
-   └─> ScreepsClient.discover_rooms()
-       └─> CLI: 查询 rooms.objects 中 controller.user == user_id
-       └─> 返回房间列表 ['W0N0', ...]
+## CLI Commands
 
-3. 获取游戏状态
-   └─> ScreepsClient.get_game_state()
-       └─> 获取 tick
-       └─> 对每个 owned_room:
-           └─> CLI: 获取 rooms.objects
-           └─> 分类: creeps, spawns, sources, structures
-       └─> API: 获取 Memory
-       └─> 返回 GameState
-```
+All `storage.db` queries return Promises - must use `.then()`:
 
-## 工具（Agent 可用）
+```bash
+# Query (must include sleep for async!)
+(echo "storage.db.users.findOne({username: 'kimi'}).then(u => JSON.stringify(u))"; sleep 0.5) | nc localhost 21026
 
-所有工具都基于动态数据，不需要硬编码房间：
-
-- `GetGameState`: 获取完整游戏状态（自动发现房间）
-- `SendConsole`: 发送控制台命令
-- `SetMemory`: 设置游戏内存
-- `UploadCode`: 上传代码
-- `AddMonitor`: 添加监控信号
-- `RemoveMonitor`: 移除监控
-- `ListMonitors`: 列出监控
-- `GetMonitorRecords`: 获取触发记录
-
-## 扩展
-
-### 添加新 Agent
-
-只需在 config.yaml 中添加：
-
-```yaml
-agents:
-  - name: "new_agent"
-    username: "new_user"
-    password: "new_pass"
-    model: "some-model"
+# Room objects
+(echo "storage.db['rooms.objects'].find({room: 'W0N0'}).then(o => JSON.stringify(o))"; sleep 0.5) | nc localhost 21026
 ```
 
-### 自定义监控
+## Code Upload
 
-```yaml
-initial_monitors:
-  - name: "under_attack"
-    description: "检测敌方单位"
-    condition: "any(c.get('user') != user_id for c in creeps.values())"
-    priority: "critical"
-    immediate_inference: true
+Agents write to workspace, then upload via curl:
+
+```bash
+curl -s -X POST http://localhost:21025/api/user/code \
+  -u "user:pass" \
+  -H "Content-Type: application/json" \
+  -d "$(jq -n --arg code \"$(cat workspace/kimi/main.js)\" '{branch:\"default\",modules:{main:$code}}')"
 ```
 
-## 依赖
+## Logs
 
-- `kimi-cli>=0.3.0`
-- `pydantic>=2.0.0`
-- `pyyaml>=6.0.0`
-- `aiohttp>=3.0.0`
+```bash
+# Report
+uv run python scripts/report.py
+
+# Sample output:
+# ## KIMI
+# Sessions: 2
+# Tool calls: 13
+# Tools: {'ReadFile': 3, 'Shell': 8, 'WriteFile': 2}
+# Code files: ['main.js']
+#   - main.js: 109 lines
+```
+
+## Known Issues
+
+### IPv6 Connection
+
+Server listens on IPv6. Code handles this with fallback:
+```python
+for family in (socket.AF_INET6, socket.AF_INET):
+    sock = socket.socket(family, socket.SOCK_STREAM)
+    try:
+        sock.connect((host, port))
+        break
+    except:
+        sock.close()
+```
+
+### Database Reset
+
+Never delete db.json directly! Copy from template:
+```bash
+cp server/node_modules/@screeps/launcher/init_dist/db.json server/db.json
+```
+
+## Screeps API
+
+- Docs: https://docs.screeps.com/api/
+- Key objects: Game.spawns, Game.creeps, Memory
+- Body parts: WORK, CARRY, MOVE, ATTACK, HEAL, CLAIM

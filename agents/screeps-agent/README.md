@@ -1,25 +1,34 @@
 # Screeps Multi-Agent
 
-基于 kimi-cli 的 Screeps 游戏多 AI Agent 框架。支持多个 Agent 使用不同模型并行运行。
+基于 kimi-cli 的 Screeps 多 AI Agent 框架。支持多个 Agent 使用不同 LLM 并行运行。
 
 ## 功能特点
 
-- **多 Agent 并行**: 支持多个 Agent 同时运行，每个使用不同的 AI 模型
-- **动态数据获取**: 所有游戏数据（房间、建筑、位置等）在运行时动态获取，无硬编码
-- **定时推理**: 默认每 30 秒自动收集游戏状态并进行 AI 推理
-- **信号监控**: 设置自定义监控条件，当满足条件时触发记录或立即推理
-- **推理控制**: 支持取消当前推理并立即开始新的推理
+- **多 Agent 并行**: 4 个 Agent 同时运行，各自控制一个房间
+- **独立 Workspace**: 每个 Agent 有独立的代码目录 `workspace/<name>/`
+- **文件持久化**: Agent 写的代码文件在循环间保留
+- **同一 Session**: 每个 Agent 使用同一个 KimiCLI session，保留对话历史
+- **JSONL 日志**: 完整记录推理过程和工具调用
 
 ## 安装
 
 ```bash
 cd agents/screeps-agent
-pip install -e .
+uv sync
 ```
 
 ## 快速开始
 
-### 1. 配置
+### 1. 确保 Screeps 服务器运行
+
+```bash
+cd ../screeps-env
+./start.sh
+# 等待几秒确保端口就绪
+nc -z localhost 21026 && echo "Server OK"
+```
+
+### 2. 配置
 
 编辑 `config.yaml`：
 
@@ -29,19 +38,19 @@ server:
   cli_port: 21026
 
 runner:
-  inference_interval: 30.0
+  inference_interval: 30.0   # 每 30 秒一轮
+  yolo: true                 # 自动确认工具执行
 
-# 每个 Agent 只需配置账户和模型
 agents:
   - name: "kimi"
     username: "kimi"
     password: "kimi123"
-    model: "kimi-latest"
+    model: "kimi-k2-turbo-preview"
   
   - name: "claude"
     username: "claude"
     password: "claude123"
-    model: "claude-sonnet-4-20250514"
+    model: "claude-sonnet-4"
   
   - name: "gpt"
     username: "gpt"
@@ -54,72 +63,160 @@ agents:
     model: "gemini-2.5-pro"
 ```
 
-### 2. 运行
+### 3. 运行
 
 ```bash
-# 运行所有 Agent
-screeps-agent -c config.yaml -v
+# 后台运行
+nohup uv run python scripts/run_all_agents.py > logs/agents.log 2>&1 &
+echo "PID: $!"
 
-# 只运行特定 Agent
-screeps-agent -c config.yaml --agent kimi -v
-
-# 单次运行（测试）
-screeps-agent -c config.yaml --once
+# 前台运行（调试）
+uv run python scripts/run_all_agents.py
 ```
 
-## 配置说明
+### 4. 查看状态
 
-### 仅需配置
+```bash
+# 查看日志
+tail -f logs/agents.log
 
-- **服务器连接信息**: URL 和端口
-- **每个 Agent**: 账户名、密码、模型名
+# 查看 JSONL 日志行数
+wc -l data/*.jsonl
 
-### 自动获取（无需配置）
+# 生成报告
+uv run python scripts/report.py
 
-- 玩家拥有的房间列表
-- 房间内所有对象（Creep、Spawn、Source 等）
-- 对象位置和属性
-- 控制器等级和进度
-- 能量状态
-
-## 命令行参数
-
-```
-screeps-agent [-c CONFIG] [--server URL] [--interval SECONDS] [--agent NAME] [--once] [-v]
-
-Options:
-  -c, --config    配置文件路径 (默认: config.yaml)
-  --server        服务器 URL (覆盖配置)
-  --interval      推理间隔秒数 (覆盖配置)
-  --agent         只运行指定名称的 Agent
-  --once          每个 Agent 只运行一次推理
-  -v, --verbose   详细输出
+# 查看 workspace 代码
+cat workspace/kimi/main.js
 ```
 
-## 编程接口
+### 5. 停止
 
-```python
-import asyncio
-from screeps_agent.config import load_config
-from screeps_agent.multi_agent import MultiAgentManager
-
-async def main():
-    config = load_config("config.yaml")
-    manager = MultiAgentManager(config)
-    
-    # 启动所有 Agent
-    await manager.start_all()
-    
-    # 获取状态
-    for status in manager.get_all_status():
-        print(f"{status.name}: {status.owned_rooms}")
-    
-    # 停止
-    await manager.stop_all()
-
-asyncio.run(main())
+```bash
+pkill -f run_all_agents
 ```
 
-## License
+## 架构
 
-MIT
+```
+screeps-agent/
+├── config.yaml              # 配置文件
+├── data/                    # JSONL 日志（每个 agent 一个文件）
+│   ├── kimi.jsonl
+│   ├── claude.jsonl
+│   └── ...
+├── workspace/               # Agent 代码目录
+│   ├── kimi/main.js
+│   ├── claude/main.js
+│   └── ...
+├── logs/                    # 运行日志
+│   └── agents.log
+├── scripts/
+│   ├── run_all_agents.py    # 入口
+│   ├── report.py            # 生成报告
+│   └── query_logs.py        # 查询日志
+└── src/screeps_agent/
+    └── agent.py             # 全部代码 (~350 行)
+```
+
+## Agent 工作流程
+
+每轮循环：
+
+1. 获取当前 tick 和房间信息
+2. 构建 prompt（含 workspace 路径、CLI 示例）
+3. 运行 LLM 推理
+4. Agent 使用 Shell/WriteFile 等工具：
+   - 查询游戏状态
+   - 写代码到 workspace
+   - 通过 curl 上传代码
+5. 等待 30 秒，进入下一轮
+
+## Agent 可用工具
+
+KimiCLI 提供的标准工具：
+
+| 工具 | 用途 |
+|------|------|
+| Shell | 执行命令（nc 连接 CLI、curl 上传代码）|
+| WriteFile | 写代码到 workspace |
+| ReadFile | 读取文件 |
+| Glob | 查找文件 |
+| Grep | 搜索内容 |
+
+## CLI 命令格式
+
+Agent 通过 Shell 工具执行 CLI 命令：
+
+```bash
+# 必须用 sleep 等待异步结果！
+(echo "storage.db.users.findOne({username: 'kimi'}).then(u => JSON.stringify(u))"; sleep 0.5) | nc localhost 21026
+```
+
+## 代码上传
+
+Agent 写代码到 workspace，然后用 curl 上传：
+
+```bash
+# 1. 写代码（使用 WriteFile 工具）
+# workspace/kimi/main.js
+
+# 2. 上传
+curl -s -X POST http://localhost:21025/api/user/code \
+  -u "kimi:kimi123" \
+  -H "Content-Type: application/json" \
+  -d "$(jq -n --arg code \"$(cat workspace/kimi/main.js)\" '{branch:\"default\",modules:{main:$code}}')"
+```
+
+## 日志格式
+
+JSONL 格式，每行一个事件：
+
+```json
+{"ts": "2026-01-12T18:31:32", "agent": "kimi", "type": "start", "session": "kimi_xxx"}
+{"ts": "2026-01-12T18:31:35", "agent": "kimi", "type": "tool", "tool": "Shell", "args": "..."}
+{"ts": "2026-01-12T18:31:36", "agent": "kimi", "type": "result", "output": "..."}
+{"ts": "2026-01-12T18:31:40", "agent": "kimi", "type": "end", "status": "ok"}
+```
+
+## 故障排除
+
+### 连接被拒绝
+
+服务器可能监听 IPv6，代码已处理此情况。如仍失败：
+
+```bash
+# 检查端口
+nc -z localhost 21026 && echo "OK"
+lsof -i :21026  # 查看是 IPv4 还是 IPv6
+```
+
+### 日志为空
+
+检查日志路径是否正确：
+
+```bash
+ls -la data/
+# 应该有 kimi.jsonl 等文件
+```
+
+### Agent 无响应
+
+查看详细日志：
+
+```bash
+cat logs/agents.log
+```
+
+## 开发
+
+```bash
+# 安装开发依赖
+uv sync --dev
+
+# 运行测试
+uv run pytest
+
+# 格式化
+uv run ruff format src/
+```

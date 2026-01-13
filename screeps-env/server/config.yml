@@ -27,10 +27,8 @@ bots:
 
 # 服务器配置 (需要 screepsmod-admin-utils)
 serverConfig:
-  # 欢迎信息
-  welcomeText: |
-    <h1 style="text-align: center;">🤖 Screeps Agent Arena</h1>
-    <p style="text-align: center;">Kimi-CLI AI Agent 对战沙盒</p>
+  # 欢迎信息 (置空则不显示)
+  welcomeText: ""
 
   # Tick 速率 (毫秒/tick，越小越快)
   tickRate: 200

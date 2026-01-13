@@ -2,22 +2,39 @@
 
 本地 Screeps 私服环境，用于 AI Agent 开发和测试。
 
-## 环境要求
+## ⚠️ 重要：环境要求
 
-- **Node.js 12** (通过 nvm，Screeps 依赖需要旧版本编译)
-- **Node.js 20** (客户端需要)
-- **Python 2.7** (通过 pyenv，node-gyp 需要)
+Screeps 私服的原生依赖 (`isolated-vm`) 需要特定的编译环境：
+
+| 依赖 | 版本 | 说明 |
+|------|------|------|
+| **Node.js** | **12.x** | 必须是 x64 版本，Apple Silicon 通过 Rosetta 2 运行 |
+| **Python** | **2.7.x** | node-gyp 3.8.0 需要 Python 2 语法 |
+| **Rosetta 2** | - | Apple Silicon Mac 必需 |
 
 ```bash
+# 安装 Rosetta 2 (Apple Silicon)
+softwareupdate --install-rosetta
+
 # 安装 pyenv 和 Python 2.7
 brew install pyenv
 pyenv install 2.7.18
 pyenv global 2.7.18
 
-# 安装 Node 12 和 20
+# 安装 Node 12
 nvm install 12
-nvm install 20
 ```
+
+> **为什么需要这么旧的环境？**
+> 
+> Screeps 私服依赖的 `isolated-vm` 和 `@screeps/driver` 包含原生 C++ 模块，
+> 必须用 `node-gyp` 编译。这些包内置的 node-gyp 3.8.0 只支持 Python 2 语法，
+> 且编译产物必须与 Node.js 运行时架构匹配。
+> 
+> 在 Apple Silicon Mac 上：
+> - Node 12 只有 x64 版本，通过 Rosetta 2 运行
+> - 编译出的 `.node` 文件也是 x64 架构
+> - 如果用 arm64 的 Node 20+ 运行，会报架构不兼容错误
 
 ## 快速开始
 
@@ -50,7 +67,7 @@ nvm install 20
 http://localhost:8080/(http://localhost:21025)/
 ```
 
-**登录**：点击右上角 Sign In，输入用户名和密码（见下方注册用户）
+**登录**：点击右上角 Sign In，输入用户名和密码
 
 ### 4. 注册用户
 
@@ -61,7 +78,10 @@ http://localhost:8080/(http://localhost:21025)/
 ./add-agent.sh agent1 pass123
 ```
 
-> 不需要邮箱验证，用户名即可登录。
+> **注意**: 如果登录时提示 "Account credentials are invalid"，可能需要重新设置密码：
+> ```bash
+> (echo "setPassword('用户名', '密码')"; sleep 0.5) | nc localhost 21026
+> ```
 
 ### 5. 创建殖民地
 
@@ -81,34 +101,29 @@ http://localhost:8080/(http://localhost:21025)/
 ./upload-code.sh agent1 pass123 agents/main.js
 ```
 
-## 查看历史录制
+## 重置游戏
 
-服务器已安装 `screepsmod-history`，自动录制游戏历史。
+**完全重置**（推荐方法）：
 
-**查看方法**：
-1. 在浏览器中进入房间视图（如 W0N0）
-2. 按 **`H`** 键 或点击右上角 **⏱️ 时钟图标**
-3. 底部出现时间轴，拖动滑块可回放历史
+```bash
+# 1. 停止服务器
+./stop.sh
 
-历史数据存储在 `server/history.db`。
+# 2. 复制初始数据库模板
+cp server/node_modules/@screeps/launcher/init_dist/db.json server/db.json
 
-## 脚本说明
+# 3. 启动服务器
+./start.sh
 
-| 脚本 | 用途 |
-|------|------|
-| `setup.sh` | 首次安装服务器和依赖 |
-| `start.sh` | 启动游戏服务器 |
-| `start-client.sh` | 启动 Web 客户端 |
-| `stop.sh` | 停止所有服务 |
-| `restart.sh` | 重启所有服务 |
-| `cli.sh` | 连接管理 CLI |
-| `init-map.sh` | 初始化 3x3 地图 |
-| `reset.sh` | 重置所有游戏数据 |
-| `add-agent.sh` | 注册新用户 |
-| `spawn-colony.sh` | 为用户创建殖民地 |
-| `upload-code.sh` | 上传用户代码 |
+# 4. 初始化地图
+./init-map.sh
 
-所有脚本位于 `screeps-env/` 目录根下。
+# 5. 添加用户和殖民地
+./add-agent.sh kimi kimi123
+./spawn-colony.sh kimi W0N0
+```
+
+> **注意**: 直接删除 db.json 会导致存储进程启动失败！必须从模板复制。
 
 ## CLI 管理
 
@@ -116,32 +131,45 @@ http://localhost:8080/(http://localhost:21025)/
 # 交互模式
 ./cli.sh
 
-# 执行单个命令
-./cli.sh "help()"
+# 执行单个命令（需要 sleep 等待异步结果）
+(echo "storage.db.users.count()"; sleep 0.5) | nc localhost 21026
 ```
 
-常用命令：
-```javascript
-// 查看用户
-storage.db.users.find()
+### CLI 命令示例
 
-// 查看 spawn
-storage.db['rooms.objects'].find({type:'spawn'})
+```javascript
+// 查看用户数量
+storage.db.users.count()
+
+// 查询用户（Promise 格式）
+storage.db.users.findOne({username: 'kimi'}).then(u => JSON.stringify(u))
+
+// 查看房间对象
+storage.db['rooms.objects'].find({room: 'W0N0'}).then(o => JSON.stringify(o))
 
 // 设置 tick 速度（毫秒）
 system.setTickDuration(100)
 
-// 重置游戏
-system.resetAllData()
+// 当前游戏时间（仅在游戏运行时可用）
+Game.time
+
+// 设置用户密码（screepsmod-auth 提供）
+setPassword('用户名', '密码')
 ```
+
+> **关键**: 
+> - 所有 `storage.db` 查询返回 Promise，必须用 `.then()` 处理！
+> - 设置密码用 `setPassword()`，不是 `system.setPassword()`
 
 ## 端口配置
 
-| 端口 | 用途 |
-|------|------|
-| 21025 | 游戏 API |
-| 21026 | 管理 CLI |
-| 8080 | Web 客户端 |
+| 端口 | 用途 | IPv6 监听 |
+|------|------|-----------|
+| 21025 | 游戏 HTTP API | 是 |
+| 21026 | 管理 CLI | 是 |
+| 8080 | Web 客户端 | - |
+
+> **注意**: 服务器默认监听 IPv6。如果程序连接失败，确保使用 IPv6 或 `localhost`。
 
 ## 游戏配置
 
@@ -156,14 +184,14 @@ system.resetAllData()
 ## 目录结构
 
 ```
-├── *.sh              # 操作脚本
-├── server/           # 服务器数据和配置
-│   ├── .screepsrc    # 服务器配置
-│   ├── config.yml    # 游戏常量配置
-│   ├── mods.json     # 加载的 mods
-│   └── history.db    # 历史录制数据
-├── agents/           # Agent 代码
-└── recordings/       # 视频录制输出（如有）
+├── *.sh                    # 操作脚本
+├── server/                 # 服务器数据和配置
+│   ├── .screepsrc          # 服务器配置
+│   ├── config.yml          # 游戏常量配置
+│   ├── mods.json           # 加载的 mods
+│   ├── db.json             # 游戏数据库（LokiJS）
+│   └── node_modules/@screeps/launcher/init_dist/db.json  # 初始数据库模板
+└── agents/                 # Agent 代码
 ```
 
 ## 已安装 Mods
@@ -171,3 +199,86 @@ system.resetAllData()
 - **screepsmod-auth** - 用户认证（支持用户名密码登录）
 - **screepsmod-admin-utils** - 管理工具（自定义游戏常量）
 - **screepsmod-history** - 历史录制
+
+## 故障排除
+
+### 引擎进程反复崩溃重启
+
+**错误现象**：
+```
+[engine_main] process exited with code 1, restarting...
+[engine_processor1] process exited with code 1, restarting...
+```
+
+**日志中的错误**：
+```
+Error: dlopen(...isolated_vm.node...): mach-o file, but is an incompatible architecture 
+(have 'x86_64', need 'arm64')
+```
+
+**原因**：Node.js 运行时架构与编译的原生模块不匹配
+
+**解决方法**：
+1. 确保使用 **Node 12** 启动服务器（不是 Node 20+）
+2. 如果依赖被错误的 Node 版本安装过，需要重新安装：
+   ```bash
+   # 切换到 Node 12 + Python 2.7
+   nvm use 12
+   pyenv global 2.7.18
+   
+   # 重新安装依赖
+   cd server
+   rm -rf node_modules package-lock.json
+   npm install
+   ```
+
+### 存储进程启动失败
+
+错误信息：
+```
+Error: Could not launch the storage process
+TypeError: Cannot read properties of null (reading 'get')
+```
+
+**解决方法**：复制初始数据库模板
+```bash
+./stop.sh
+cp server/node_modules/@screeps/launcher/init_dist/db.json server/db.json
+./start.sh
+```
+
+### CLI 连接被拒绝
+
+服务器可能还在启动中，等待几秒后重试：
+```bash
+sleep 10
+nc -z localhost 21026 && echo "OK" || echo "FAIL"
+```
+
+### Python 程序连接失败
+
+服务器监听 IPv6，确保程序支持 IPv6 连接：
+```python
+# 先尝试 IPv6，再尝试 IPv4
+for family in (socket.AF_INET6, socket.AF_INET):
+    sock = socket.socket(family, socket.SOCK_STREAM)
+    try:
+        sock.connect(('localhost', 21026))
+        break
+    except:
+        sock.close()
+```
+
+### 登录失败 "Account credentials are invalid"
+
+密码可能未正确设置，使用 CLI 重新设置：
+```bash
+(echo "setPassword('用户名', '密码')"; sleep 0.5) | nc localhost 21026
+```
+
+批量设置所有 Agent 密码：
+```bash
+for user in kimi claude gpt gemini; do
+  (echo "setPassword('$user', '${user}123')"; sleep 0.5) | nc localhost 21026
+done
+```

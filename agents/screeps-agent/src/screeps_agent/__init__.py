@@ -1,3 +1,4 @@
-"""Screeps AI Agent based on kimi-cli."""
+"""Screeps AI Agent."""
+from .agent import Agent, Config, Logger, main
 
-__version__ = "0.1.0"
+__all__ = ["Agent", "Config", "Logger", "main"]
