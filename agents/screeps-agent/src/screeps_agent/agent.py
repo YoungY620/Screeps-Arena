@@ -233,6 +233,8 @@ curl -s -X POST {server_url}/api/user/code -u "{username}:{password}" -H "Conten
 
 ## Screeps Combat Reference
 
+Official Docs: https://docs.screeps.com/index.html
+
 Key structures: Game.spawns, Game.towers, Game.structures
 Military body parts:
 - ATTACK: 30 damage/tick melee
