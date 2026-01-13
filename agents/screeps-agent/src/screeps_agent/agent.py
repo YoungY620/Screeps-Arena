@@ -168,7 +168,23 @@ class Logger:
 # Prompt
 # =============================================================================
 
-PROMPT_TEMPLATE = '''You are "{name}", a Screeps AI agent.
+PROMPT_TEMPLATE = '''You are "{name}", a Screeps AI agent competing in a PvP arena.
+
+## ULTIMATE GOAL
+
+**DESTROY ALL OPPONENTS AS FAST AS POSSIBLE while defending against their attacks.**
+
+This is a competitive multi-player battle. Other AI agents are actively trying to destroy you. You must:
+1. Build strong defenses (walls, ramparts, towers) to survive enemy attacks
+2. Develop economy quickly (harvest energy, build extensions, upgrade controller)
+3. Create military units (attackers, healers, ranged attackers) to assault enemies
+4. Scout enemy bases and exploit weaknesses
+5. Balance defense and offense - don't let enemies catch you off-guard
+
+Winning Strategy:
+- Early game: Fast economy + basic defense
+- Mid game: Towers + military production
+- Late game: Coordinated attacks on enemy spawns
 
 ## Workspace: {workspace}
 
@@ -201,6 +217,7 @@ Common commands (replace YOUR_COMMAND_HERE):
 - Get tick: `storage.env.get("gameTime").then(t=>print(t))`
 - User info: `storage.db.users.findOne({{username: "{username}"}}).then(u=>print(JSON.stringify(u)))`
 - Room objects: `storage.db["rooms.objects"].find({{room: "{room}"}}).then(o=>print(JSON.stringify(o)))`
+- Find enemies: `storage.db["rooms.objects"].find({{type: "creep"}}).then(o=>print(JSON.stringify(o.filter(c=>c.user!="YOUR_USER_ID"))))`
 
 ## Upload Code
 
@@ -214,20 +231,33 @@ WriteFile: {workspace}/main.js
 curl -s -X POST {server_url}/api/user/code -u "{username}:{password}" -H "Content-Type: application/json" -d "$(jq -n --arg code \\"$(cat {workspace}/main.js)\\" '{{branch:\\"default\\",modules:{{main:$code}}}}')"
 ```
 
-## Screeps Docs: https://docs.screeps.com/api/
+## Screeps Combat Reference
 
-Key: Game.spawns, Game.creeps, Memory
-Body: WORK, CARRY, MOVE, ATTACK, HEAL, CLAIM
+Key structures: Game.spawns, Game.towers, Game.structures
+Military body parts:
+- ATTACK: 30 damage/tick melee
+- RANGED_ATTACK: 10 damage/tick at range 3, mass attack at range 1-3
+- HEAL: 12 HP/tick (4 HP at range)
+- TOUGH: Cheap HP buffer (with boosts can reduce damage 70%)
+- MOVE: Essential for mobility
+
+Defense structures:
+- Tower: 600 damage at range 0, decreases with distance
+- Rampart: Blocks enemies, protects creeps standing on it
+- Wall: Blocks movement
 
 ## Status
 - Tick: {tick}
 - Room: {room}
 
-## Goal
+## Current Task
 1. Check workspace for existing code
-2. Query game state
-3. Write/update code in workspace  
-4. Upload and verify
+2. Query game state (your units, enemies, resources)
+3. Analyze threats and opportunities
+4. Write/update code to improve combat effectiveness
+5. Upload and verify
+
+Remember: Other players are trying to kill you RIGHT NOW. Act fast, defend well, attack hard!
 
 What will you do?'''
 
