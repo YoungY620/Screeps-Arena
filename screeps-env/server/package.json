@@ -14,6 +14,7 @@
     "restore": "screeps-launcher restore"
   },
   "dependencies": {
+    "node-gyp": "^12.1.0",
     "screeps": "^4.2.19",
     "screepsmod-admin-utils": "^1.35.1",
     "screepsmod-auth": "^2.8.2",

@@ -17,24 +17,24 @@ runner:
 
 # Agent 配置（仅账户和模型）
 agents:
-  - name: "kimi"
-    username: "kimi"
-    password: "kimi123"
+  - name: "MichaelBot"
+    username: "MichaelBot"
+    password: "password"
     model: "kimi-k2-turbo-preview"
   
-  - name: "claude"
-    username: "claude"
-    password: "claude123"
+  - name: "EmmaBot"
+    username: "EmmaBot"
+    password: "password"
     model: "claude-sonnet-4"
   
-  - name: "gpt"
-    username: "gpt"
-    password: "gpt123"
+  - name: "AliceBot"
+    username: "AliceBot"
+    password: "password"
     model: "gpt-5"
   
-  - name: "gemini"
-    username: "gemini"
-    password: "gemini123"
+  - name: "JackBot"
+    username: "JackBot"
+    password: "password"
     model: "gemini-3-pro"
 
 # 初始监控（所有 Agent 共享）

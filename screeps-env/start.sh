@@ -1,27 +1,30 @@
 #!/bin/bash
-# 启动 Screeps 服务器
-# 必须使用 Node 12 (x64) + Python 2.7
+# 启动 Screeps 服务器 (Docker)
 
-cd "$(dirname "$0")/server"
+cd "$(dirname "$0")"
 
-# 设置 Node 12 环境（必须！）
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-nvm use 12 || {
-  echo "错误: 需要 Node 12"
-  echo "运行: nvm install 12"
-  exit 1
-}
+IMAGE_NAME="screeps-server"
+CONTAINER_NAME="screeps"
 
-# 设置 Python 2.7 环境（可选，仅安装依赖时需要）
-export PYENV_ROOT="$HOME/.pyenv"
-export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)" 2>/dev/null
+# 构建镜像（如果不存在）
+if ! docker image inspect $IMAGE_NAME >/dev/null 2>&1; then
+    echo "首次运行，构建镜像..."
+    docker build -t $IMAGE_NAME .
+fi
 
-echo "=== 启动 Screeps 服务器 ==="
-echo "Node: $(node --version) ($(node -p process.arch))"
-echo "端口: 21025 (游戏) / 21026 (CLI)"
-echo "按 Ctrl+C 停止"
+# 停止已有容器
+docker rm -f $CONTAINER_NAME 2>/dev/null
+
+# 启动容器
+docker run -d \
+    --name $CONTAINER_NAME \
+    -p 21025:21025 \
+    -p 21026:21026 \
+    -v "$(pwd)/server/db.json:/screeps/db.json" \
+    $IMAGE_NAME
+
+echo "=== Screeps 服务器 ==="
+echo "游戏: http://localhost:21025"
+echo "CLI:  localhost:21026"
 echo ""
-
-npx screeps start --port 21025 --cli_port 21026
+echo "查看日志: docker logs -f $CONTAINER_NAME"

@@ -52,47 +52,82 @@ class Config:
 # CLI Client
 # =============================================================================
 
-def cli_exec_sync(host: str, port: int, cmd: str, timeout: float = 2.0) -> str:
-    # Try IPv6 first, then IPv4
-    for family in (socket.AF_INET6, socket.AF_INET):
-        sock = socket.socket(family, socket.SOCK_STREAM)
-        sock.settimeout(timeout)
-        try:
-            sock.connect((host, port))
-            break
-        except (ConnectionRefusedError, OSError):
-            sock.close()
-            continue
-    else:
-        raise ConnectionRefusedError(f"Cannot connect to {host}:{port}")
+# Docker container name for Screeps server
+DOCKER_CONTAINER = "screeps"
+
+
+def cli_exec_sync(host: str, port: int, cmd: str, timeout: float = 5.0) -> str:
+    """Execute CLI command via docker exec (since CLI only listens on 127.0.0.1 inside container)."""
+    import subprocess
+    
+    # Use node to connect to CLI inside the container
+    # Wait for welcome message first, then send command and wait for response
+    node_script = f'''
+const net = require('net');
+const client = new net.Socket();
+let output = '';
+let welcomeReceived = false;
+let cmdSent = false;
+
+client.connect({port}, 'localhost', () => {{}});
+
+client.on('data', (data) => {{
+  output += data.toString();
+  
+  // Wait for welcome message before sending command
+  if (!welcomeReceived && output.includes('< ')) {{
+    welcomeReceived = true;
+    output = '';  // Clear welcome message
+    client.write({json.dumps(cmd)} + '\\n');
+    cmdSent = true;
+  }}
+  
+  // After command sent, wait for response prompt
+  if (cmdSent && output.includes('\\n< ')) {{
+    // Remove the trailing prompt
+    const lines = output.split('\\n');
+    const result = lines.filter(l => !l.startsWith('< ')).join('\\n');
+    console.log(result.trim());
+    client.destroy();
+  }}
+}});
+
+client.on('error', (err) => {{
+  console.error('CLI Error:', err.message);
+  process.exit(1);
+}});
+
+client.on('close', () => {{
+  process.exit(0);
+}});
+
+setTimeout(() => {{
+  if (output) {{
+    const lines = output.split('\\n');
+    const result = lines.filter(l => !l.startsWith('< ')).join('\\n');
+    console.log(result.trim());
+  }}
+  client.destroy();
+}}, {int(timeout * 1000)});
+'''
+    
     try:
-        pass  # Connection established
-        # Consume welcome
-        while True:
-            try:
-                if b"commands." in sock.recv(4096):
-                    break
-            except socket.timeout:
-                break
-        # Send and receive
-        sock.sendall((cmd + "\n").encode())
-        resp = b""
-        while True:
-            try:
-                chunk = sock.recv(4096)
-                if not chunk or b"\n< " in resp:
-                    break
-                resp += chunk
-            except socket.timeout:
-                break
-        return resp.decode(errors="replace")
-    finally:
-        sock.close()
+        result = subprocess.run(
+            ['docker', 'exec', DOCKER_CONTAINER, 'node', '-e', node_script],
+            capture_output=True,
+            text=True,
+            timeout=timeout + 2
+        )
+        return result.stdout + result.stderr
+    except subprocess.TimeoutExpired:
+        return "CLI timeout"
+    except Exception as e:
+        return f"CLI error: {e}"
 
 
-async def cli_exec(host: str, port: int, cmd: str) -> str:
+async def cli_exec(host: str, port: int, cmd: str, timeout: float = 5.0) -> str:
     return await asyncio.get_event_loop().run_in_executor(
-        None, cli_exec_sync, host, port, cmd, 2.0
+        None, cli_exec_sync, host, port, cmd, timeout
     )
 
 
@@ -116,11 +151,9 @@ def parse_json(text: str, default=None):
 # =============================================================================
 
 class Logger:
-    def __init__(self, name: str, base_dir: Path = None):
-        # Use absolute path to ensure logs go to project data dir
-        if base_dir is None:
-            base_dir = Path(__file__).parent.parent.parent  # screeps_agent -> src -> project root
-        self.path = base_dir / "data" / f"{name}.jsonl"
+    def __init__(self, name: str, workspace: Path):
+        # Log to agent's own workspace directory (use absolute path)
+        self.path = workspace.absolute() / "logs.jsonl"
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.name = name
     
@@ -146,19 +179,28 @@ This is YOUR directory. Use it to:
 
 ## CLI Commands (via Shell tool)
 
-Always use sleep for async results:
+The Screeps CLI runs inside a Docker container named "screeps". Use docker exec with node to query game state:
+
 ```bash
-(echo "COMMAND"; sleep 0.5) | nc localhost {cli_port}
+# Template - use print() to output results from async operations
+docker exec screeps node -e '
+const net = require("net");
+const c = new net.Socket();
+let out = "", ready = false;
+c.connect(21026, "localhost");
+c.on("data", d => {{
+  out += d;
+  if (!ready && out.includes("< ")) {{ ready = true; out = ""; c.write("YOUR_COMMAND_HERE\\n"); }}
+  if (ready && out.includes("\\n< ")) {{ console.log(out.split("\\n").filter(l=>!l.startsWith("< ")).join("\\n")); c.destroy(); }}
+}});
+setTimeout(() => process.exit(0), 3000);
+'
 ```
 
-Examples:
-```bash
-# Your user info
-(echo "storage.db.users.findOne({{username: '{username}'}}).then(u => JSON.stringify(u))"; sleep 0.5) | nc localhost {cli_port}
-
-# Room objects  
-(echo "storage.db['rooms.objects'].find({{room: '{room}'}}).then(o => JSON.stringify(o))"; sleep 0.5) | nc localhost {cli_port}
-```
+Common commands (replace YOUR_COMMAND_HERE):
+- Get tick: `storage.env.get("gameTime").then(t=>print(t))`
+- User info: `storage.db.users.findOne({{username: "{username}"}}).then(u=>print(JSON.stringify(u)))`
+- Room objects: `storage.db["rooms.objects"].find({{room: "{room}"}}).then(o=>print(JSON.stringify(o)))`
 
 ## Upload Code
 
@@ -211,22 +253,23 @@ class Agent:
         self.workspace = Path("workspace") / name
         self.workspace.mkdir(parents=True, exist_ok=True)
         
-        self.logger = Logger(name)
+        self.logger = Logger(name, self.workspace)
         self._kimi: KimiCLI = None
         self._stop = asyncio.Event()
         self._user_id = None
-        self._room = "W0N0"
+        self._room = None
     
     async def _init_kimi(self):
         if not self._kimi:
-            # Set working directory to agent's workspace
+            # Each agent's working directory is their own workspace
+            # This ensures agents can only access their own code
             session = await Session.create(work_dir=KaosPath(str(self.workspace.absolute())))
             self._kimi = await KimiCLI.create(session, yolo=self.yolo, model_name=self.model)
     
     async def _get_info(self):
         # Get user ID and room
         r = await cli_exec(self.cli_host, self.cli_port,
-            f"storage.db.users.findOne({{username: '{self.username}'}}).then(u => JSON.stringify(u))")
+            f"storage.db.users.findOne({{username: '{self.username}'}}).then(u => print(JSON.stringify(u)))")
         user = parse_json(r, {})
         self._user_id = user.get("_id", "")
         rooms = user.get("rooms", [])
@@ -234,13 +277,11 @@ class Agent:
             self._room = rooms[0]
     
     async def _get_tick(self) -> int:
-        r = await cli_exec(self.cli_host, self.cli_port, "Game.time")
+        r = await cli_exec(self.cli_host, self.cli_port, 'storage.env.get("gameTime").then(t => print(t))')
         for line in r.split("\n"):
-            if line.strip().startswith("< "):
-                try:
-                    return int(line.strip()[2:])
-                except:
-                    pass
+            line = line.strip()
+            if line.isdigit():
+                return int(line)
         return 0
     
     def _build_prompt(self, tick: int) -> str:
