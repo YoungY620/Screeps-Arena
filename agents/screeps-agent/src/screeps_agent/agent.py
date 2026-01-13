@@ -234,6 +234,7 @@ curl -s -X POST {server_url}/api/user/code -u "{username}:{password}" -H "Conten
 ## Screeps Combat Reference
 
 Official Docs: https://docs.screeps.com/index.html
+API Reference: https://docs.screeps.com/api/
 
 Key structures: Game.spawns, Game.towers, Game.structures
 Military body parts:
