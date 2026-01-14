@@ -11,6 +11,7 @@ Each agent:
 import asyncio
 import json
 import socket
+import sys
 import time
 import uuid
 from dataclasses import dataclass
@@ -21,6 +22,10 @@ import yaml
 from kaos.path import KaosPath
 from kimi_cli.app import KimiCLI
 from kimi_cli.session import Session
+
+# 添加 docker 目录到 path 以导入 sandbox
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "docker"))
+from sandbox import start_sandbox_containers, stop_sandbox_containers, configure_sandbox
 
 
 # =============================================================================
@@ -34,6 +39,12 @@ class Config:
     inference_interval: float = 30.0
     yolo: bool = True
     agents: list = None
+    # 沙箱配置
+    sandbox_mode: str = "isolated"  # "isolated" or "shared"
+    sandbox_shared_port: int = 2200
+    # 解说员配置
+    commentator_enabled: bool = False
+    commentator_config: dict = None
     
     @classmethod
     def load(cls, path: str = "config.yaml") -> "Config":
@@ -45,6 +56,10 @@ class Config:
             inference_interval=data.get("runner", {}).get("inference_interval", 30.0),
             yolo=data.get("runner", {}).get("yolo", True),
             agents=data.get("agents", []),
+            sandbox_mode=data.get("sandbox", {}).get("mode", "isolated"),
+            sandbox_shared_port=data.get("sandbox", {}).get("shared_port", 2200),
+            commentator_enabled=data.get("commentator", {}).get("enabled", False),
+            commentator_config=data.get("commentator", {}),
         )
 
 
@@ -452,7 +467,22 @@ async def main():
     print(f"Server: {cfg.server_url}:{cfg.cli_port}")
     print(f"Interval: {cfg.inference_interval}s")
     print(f"Agents: {[a['name'] for a in cfg.agents]}")
+    print(f"Sandbox: {cfg.sandbox_mode}" + (f" (port {cfg.sandbox_shared_port})" if cfg.sandbox_mode == "shared" else ""))
     print("=" * 50)
+    
+    # 配置沙箱模式
+    agent_names = [a["name"] for a in cfg.agents]
+    configure_sandbox(
+        mode=cfg.sandbox_mode,
+        shared_port=cfg.sandbox_shared_port,
+        agents=agent_names,
+    )
+    
+    # 启动沙箱容器
+    workspace_root = Path("workspace")
+    if not start_sandbox_containers(workspace_root):
+        print("Failed to start sandbox containers")
+        return
     
     agents = [
         Agent(
@@ -472,7 +502,12 @@ async def main():
     signal.signal(signal.SIGINT, stop)
     signal.signal(signal.SIGTERM, stop)
     
-    await asyncio.gather(*[a.run() for a in agents])
+    try:
+        await asyncio.gather(*[a.run() for a in agents])
+    finally:
+        # 停止沙箱容器
+        stop_sandbox_containers()
+    
     print("Done")
 
 
