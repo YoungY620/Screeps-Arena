@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Screeps Room Renderer</title>
+    <style>
+        body { margin: 0; padding: 0; background: #050505; overflow: hidden; }
+        #game-container { width: 900px; height: 900px; }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.2/pixi.min.js"></script>
+    <script src="node_modules/@screeps/renderer-metadata/dist/renderer-metadata.js"></script>
+    <script src="node_modules/@screeps/renderer/dist/renderer.js"></script>
+    
+    <script>
+        // 完整资源映射
+        const resourceMap = {
+            'berserk': 'resources/berserk.svg',
+            'bodyPartBar': 'resources/bodyPartBar.svg',
+            'commander-lvl0': 'resources/commander-lvl0.svg',
+            'commander-lvl1': 'resources/commander-lvl1.svg',
+            'commander-lvl2': 'resources/commander-lvl2.svg',
+            'commander-lvl3': 'resources/commander-lvl3.svg',
+            'commander-lvl4': 'resources/commander-lvl4.svg',
+            'commander': 'resources/commander.svg',
+            'constructedWall': 'resources/constructedWall.svg',
+            'controller-level': 'resources/controller-level.svg',
+            'controller': 'resources/controller.svg',
+            'cover': 'resources/cover.svg',
+            'creep-npc': 'resources/creep-npc.svg',
+            'defend': 'resources/defend.svg',
+            'demolish': 'resources/demolish.svg',
+            'deposit-biomass-fill': 'resources/deposit-biomass-fill.svg',
+            'deposit-biomass': 'resources/deposit-biomass.svg',
+            'deposit-metal-fill': 'resources/deposit-metal-fill.svg',
+            'deposit-metal': 'resources/deposit-metal.svg',
+            'deposit-mist-fill': 'resources/deposit-mist-fill.svg',
+            'deposit-mist': 'resources/deposit-mist.svg',
+            'deposit-silicon-fill': 'resources/deposit-silicon-fill.svg',
+            'deposit-silicon': 'resources/deposit-silicon.svg',
+            'disable': 'resources/disable.svg',
+            'disrupt-source': 'resources/disrupt-source.svg',
+            'disrupt-spawn': 'resources/disrupt-spawn.svg',
+            'disrupt-terminal': 'resources/disrupt-terminal.svg',
+            'disrupt-tower': 'resources/disrupt-tower.svg',
+            'drain-extension': 'resources/drain-extension.svg',
+            'encourage': 'resources/encourage.svg',
+            'executor-lvl0': 'resources/executor-lvl0.svg',
+            'executor-lvl1': 'resources/executor-lvl1.svg',
+            'executor-lvl2': 'resources/executor-lvl2.svg',
+            'executor-lvl3': 'resources/executor-lvl3.svg',
+            'executor-lvl4': 'resources/executor-lvl4.svg',
+            'executor': 'resources/executor.svg',
+            'exhaust': 'resources/exhaust.svg',
+            'exit-bottom': 'resources/exit-bottom.svg',
+            'exit-left': 'resources/exit-left.svg',
+            'exit-right': 'resources/exit-right.svg',
+            'exit-top': 'resources/exit-top.svg',
+            'extension-border100': 'resources/extension-border100.svg',
+            'extension-border200': 'resources/extension-border200.svg',
+            'extension-border50': 'resources/extension-border50.svg',
+            'extension': 'resources/extension.svg',
+            'extractor': 'resources/extractor.svg',
+            'factory-border': 'resources/factory-border.svg',
+            'factory-highlight': 'resources/factory-highlight.svg',
+            'factory-lvl0': 'resources/factory-lvl0.svg',
+            'factory-lvl1': 'resources/factory-lvl1.svg',
+            'factory-lvl2': 'resources/factory-lvl2.svg',
+            'factory-lvl3': 'resources/factory-lvl3.svg',
+            'factory-lvl4': 'resources/factory-lvl4.svg',
+            'factory-lvl5': 'resources/factory-lvl5.svg',
+            'factory': 'resources/factory.svg',
+            'flag-secondary': 'resources/flag-secondary.svg',
+            'flag': 'resources/flag.svg',
+            'fortify': 'resources/fortify.svg',
+            'generate-ops': 'resources/generate-ops.svg',
+            'harvest-energy': 'resources/harvest-energy.svg',
+            'harvest-mineral': 'resources/harvest-mineral.svg',
+            'invaderCore': 'resources/invaderCore.svg',
+            'kill': 'resources/kill.svg',
+            'lab-highlight': 'resources/lab-highlight.svg',
+            'lab-mineral': 'resources/lab-mineral.svg',
+            'lab': 'resources/lab.svg',
+            'link-border': 'resources/link-border.svg',
+            'link-energy': 'resources/link-energy.svg',
+            'link': 'resources/link.svg',
+            'mass-repair': 'resources/mass-repair.svg',
+            'nuke': 'resources/nuke.svg',
+            'nuker-border': 'resources/nuker-border.svg',
+            'nuker': 'resources/nuker.svg',
+            'operate-controller': 'resources/operate-controller.svg',
+            'operate-extension': 'resources/operate-extension.svg',
+            'operate-lab': 'resources/operate-lab.svg',
+            'operate-observer': 'resources/operate-observer.svg',
+            'operate-power': 'resources/operate-power.svg',
+            'operate-spawn': 'resources/operate-spawn.svg',
+            'operate-storage': 'resources/operate-storage.svg',
+            'operate-terminal': 'resources/operate-terminal.svg',
+            'operate-tower': 'resources/operate-tower.svg',
+            'operator-lvl0': 'resources/operator-lvl0.svg',
+            'operator-lvl1': 'resources/operator-lvl1.svg',
+            'operator-lvl2': 'resources/operator-lvl2.svg',
+            'operator-lvl3': 'resources/operator-lvl3.svg',
+            'operator-lvl4': 'resources/operator-lvl4.svg',
+            'operator': 'resources/operator.svg',
+            'powerBank': 'resources/powerBank.svg',
+            'punch': 'resources/punch.svg',
+            'rampart': 'resources/rampart.svg',
+            'rectangle': 'resources/rectangle.svg',
+            'reflect': 'resources/reflect.svg',
+            'regen-mineral': 'resources/regen-mineral.svg',
+            'regenerate-mineral': 'resources/regen-mineral.svg',
+            'regen-source': 'resources/regen-source.svg',
+            'regenerate-source': 'resources/regen-source.svg',
+            'reinforce': 'resources/reinforce.svg',
+            'remote-transfer': 'resources/remote-transfer.svg',
+            'renew': 'resources/renew.svg',
+            'ruin': 'resources/ruin.svg',
+            'shield': 'resources/shield.svg',
+            'sight': 'resources/sight.svg',
+            'snipe': 'resources/snipe.svg',
+            'storage-border': 'resources/storage-border.svg',
+            'storage': 'resources/storage.svg',
+            'summon': 'resources/summon.svg',
+            'tbd': 'resources/tbd.svg',
+            'terminal-arrows': 'resources/terminal-arrows.svg',
+            'terminal-border': 'resources/terminal-border.svg',
+            'terminal-highlight': 'resources/terminal-highlight.svg',
+            'terminal': 'resources/terminal.svg',
+            'tombstone-border': 'resources/tombstone-border.svg',
+            'tombstone-resource': 'resources/tombstone-resource.svg',
+            'tombstone': 'resources/tombstone.svg',
+            'tough': 'resources/tough.svg',
+            'tower-base': 'resources/tower-base.svg',
+            'tower-rotatable-npc': 'resources/tower-rotatable-npc.svg',
+            'tower-rotatable': 'resources/tower-rotatable.svg',
+            'creep-mask': 'resources/creep-mask.png',
+            'flare1': 'resources/flare1.png',
+            'flare2': 'resources/flare2.png',
+            'flare3': 'resources/flare3.png',
+            'glow': 'resources/glow.png',
+            'ground-mask': 'resources/ground-mask.png',
+            'ground-mask2': 'resources/ground-mask.png',
+            'ground': 'resources/ground.png',
+            'noise1': 'resources/noise1.png',
+            'noise2': 'resources/noise2.png',
+            'circle': 'resources/circle.svg',
+            'spawn': 'resources/spawn.svg',
+            'road': 'resources/road.svg',
+            'container': 'resources/container.svg',
+            'keeperLair': 'resources/keeperLair.svg',
+        };
+        
+        const rescaleResources = [
+            'controller', 'controller-level', 'constructedWall', 'extension',
+            'extension-border50', 'extension-border100', 'extension-border200',
+            'extractor', 'storage', 'storage-border', 'terminal', 'terminal-border',
+            'tower-base', 'lab', 'link', 'link-border', 'nuker', 'nuker-border',
+            'powerBank', 'factory', 'invaderCore', 'tombstone-border', 'tombstone-resource',
+            'bodyPartBar', 'creep-npc', 'flag', 'flag-secondary'
+        ];
+        
+        const worldConfigs = {
+            ATTACK_PENETRATION: 10,
+            CELL_SIZE: 100,
+            ROOM_SIZE: 50,
+            RENDER_SIZE: { width: 2048, height: 2048 },
+            VIEW_BOX: 5000,
+            BADGE_URL: '',
+            metadata: window.RENDERER_METADATA,
+            gameData: {
+                player: '',
+                showMyNames: { spawns: true, creeps: true },
+                showEnemyNames: { spawns: true, creeps: true },
+                showFlagsNames: true,
+                showCreepSpeech: true,
+                swampTexture: 'disabled',
+            },
+            lighting: 'disabled',
+            forceCanvas: false,
+        };
+        
+        async function init() {
+            const container = document.getElementById('game-container');
+            const roomData = window.ROOM_DATA;
+            const terrainData = window.TERRAIN_DATA;
+            
+            if (!roomData) {
+                window.RENDER_ERROR = 'No room data';
+                return;
+            }
+            
+            console.log('PIXI:', PIXI.VERSION, 'Objects:', roomData.objects.length);
+            
+            if (!window.RENDERER_METADATA) {
+                window.RENDER_ERROR = 'Metadata not loaded';
+                return;
+            }
+            
+            try {
+                renderer.GameRenderer.compileMetadata(worldConfigs.metadata);
+                
+                const gameApp = new renderer.GameRenderer({
+                    size: { width: container.clientWidth, height: container.clientHeight },
+                    resourceMap,
+                    worldConfigs,
+                    rescaleResources,
+                    useDefaultLogger: true,
+                    backgroundColor: 0x050505,
+                });
+                
+                await gameApp.init(container);
+                
+                if (terrainData && terrainData.length > 0) {
+                    await gameApp.setTerrain(terrainData);
+                }
+                
+                // 设置缩放以显示整个房间 (50x50 格子, 每格 100 像素 = 5000 像素, 画布 900 像素)
+                // zoomLevel = 画布尺寸 / VIEW_BOX = 900 / 5000 = 0.18
+                gameApp.zoomLevel = 0.18;
+                gameApp.resize();
+                
+                await gameApp.applyState(roomData, 0);
+                await new Promise(r => setTimeout(r, 1500));
+                
+                window.RENDER_COMPLETE = true;
+                console.log('Render complete!');
+            } catch (err) {
+                console.error('Render error:', err);
+                console.error('Stack:', err.stack);
+                window.RENDER_ERROR = err.message || err.toString();
+            }
+        }
+        
+        window.addEventListener('load', () => setTimeout(init, 100));
+    </script>
+</body>
+</html>
