@@ -1,10 +1,10 @@
 #!/bin/bash
-# 初始化四个 Agent（设置密码 + 清空代码）
-# 使用默认 Bot: MichaelBot, EmmaBot, AliceBot, JackBot
+# 初始化四个 Agent（注册账户，不选择出生点）
+# 用户名按模型短名称: kimi, claude, gpt, gemini
 
 cd "$(dirname "$0")"
 
-AGENTS="MichaelBot EmmaBot AliceBot JackBot"
+AGENTS="kimi claude gpt gemini"
 PASSWORD="password"
 CONTAINER_NAME="screeps"
 
@@ -15,40 +15,51 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 nvm use 12 > /dev/null 2>&1
 
-echo "=== 初始化 Agent ==="
+echo "=== 注册 Agent 账户 ==="
 
-# 通过 Docker 容器内的 CLI 一次性设置所有密码
-docker exec -i $CONTAINER_NAME sh -c "(
-echo \"setPassword('MichaelBot', '$PASSWORD')\"
-sleep 0.2
-echo \"setPassword('EmmaBot', '$PASSWORD')\"
-sleep 0.2
-echo \"setPassword('AliceBot', '$PASSWORD')\"
-sleep 0.2
-echo \"setPassword('JackBot', '$PASSWORD')\"
-sleep 0.3
-) | npx screeps cli" > /dev/null 2>&1 &
-CLI_PID=$!
-
-# 等待密码设置完成（最多10秒）
-sleep 3
-kill $CLI_PID 2>/dev/null
-echo "✓ 密码已设置"
-
-# 清空代码
 node << 'EOF'
 const { ScreepsAPI } = require('screeps-api');
+
+const agents = ['kimi', 'claude', 'gpt', 'gemini'];
+const password = 'password';
+
 (async () => {
-  const api = new ScreepsAPI({ protocol: 'http', hostname: 'localhost', port: 21025, path: '/' });
-  for (const agent of ['MichaelBot', 'EmmaBot', 'AliceBot', 'JackBot']) {
-    await api.auth(agent, 'password');
-    await api.code.set('default', { main: '// Empty' });
+  const api = new ScreepsAPI({ 
+    protocol: 'http', 
+    hostname: 'localhost', 
+    port: 21025, 
+    path: '/' 
+  });
+  
+  for (const username of agents) {
+    try {
+      // 注册新用户
+      const result = await api.raw.register.submit(
+        username,
+        `${username}@test.com`,
+        password,
+        { main: '// Empty' }
+      );
+      
+      if (result.ok) {
+        console.log(`✓ ${username} 注册成功`);
+      } else {
+        console.log(`✗ ${username} 注册失败:`, result.error || '未知错误');
+      }
+    } catch (err) {
+      // 可能已存在，尝试设置密码
+      if (err.message && err.message.includes('exists')) {
+        console.log(`- ${username} 已存在`);
+      } else {
+        console.log(`✗ ${username} 错误:`, err.message);
+      }
+    }
   }
-  console.log('✓ 代码已清空');
+  
+  console.log('');
+  console.log('=== 完成 ===');
+  console.log('Agent: kimi, claude, gpt, gemini');
+  console.log('密码: password');
+  console.log('状态: 未选择出生点 (empty)');
 })();
 EOF
-
-echo ""
-echo "=== 完成 ==="
-echo "Agent: MichaelBot, EmmaBot, AliceBot, JackBot"
-echo "密码: password"

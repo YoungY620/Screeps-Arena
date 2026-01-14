@@ -219,6 +219,23 @@ Common commands (replace YOUR_COMMAND_HERE):
 - Room objects: `storage.db["rooms.objects"].find({{room: "{room}"}}).then(o=>print(JSON.stringify(o)))`
 - Find enemies: `storage.db["rooms.objects"].find({{type: "creep"}}).then(o=>print(JSON.stringify(o.filter(c=>c.user!="YOUR_USER_ID"))))`
 
+## HTTP API Authentication
+
+**IMPORTANT:** This server requires Token-based authentication. Basic Auth (-u user:pass) does NOT work!
+
+### Step 1: Get auth token (do this first!)
+```bash
+TOKEN=$(curl -s -X POST -H "Content-Type: application/json" \\
+  -d '{{"email":"{username}@test.com","password":"{password}"}}' \\
+  "{server_url}/api/auth/signin" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+echo "Token: $TOKEN"
+```
+
+### Step 2: Use token for all API calls
+All subsequent API calls MUST include these headers:
+- `-H "X-Token: $TOKEN"`
+- `-H "X-Username: {username}"`
+
 ## Upload Code
 
 1. Write code to workspace:
@@ -226,9 +243,45 @@ Common commands (replace YOUR_COMMAND_HERE):
 WriteFile: {workspace}/main.js
 ```
 
-2. Upload from file:
+2. Upload from file (with token auth):
 ```bash
-curl -s -X POST {server_url}/api/user/code -u "{username}:{password}" -H "Content-Type: application/json" -d "$(jq -n --arg code \\"$(cat {workspace}/main.js)\\" '{{branch:\\"default\\",modules:{{main:$code}}}}')"
+curl -s -X POST "{server_url}/api/user/code" \\
+  -H "X-Token: $TOKEN" -H "X-Username: {username}" \\
+  -H "Content-Type: application/json" \\
+  -d "$(jq -n --arg code \\"$(cat {workspace}/main.js)\\" '{{branch:\\"default\\",modules:{{main:$code}}}}')"
+```
+
+## Respawn & Place Spawn (HTTP API)
+
+If you need to respawn or place your initial spawn:
+
+1. Check world status:
+```bash
+curl -s -H "X-Token: $TOKEN" -H "X-Username: {username}" "{server_url}/api/user/world-status"
+# Returns: {{"ok":1,"status":"normal|lost|empty"}}
+# - "normal": playing normally
+# - "lost": all spawns destroyed, need to respawn
+# - "empty": no spawn yet, need to place one
+```
+
+2. Get recommended start room:
+```bash
+curl -s -H "X-Token: $TOKEN" -H "X-Username: {username}" "{server_url}/api/user/world-start-room"
+# Returns: {{"ok":1,"room":["W5N5"]}}
+```
+
+3. Place initial spawn (status must be "empty", use room from step 2):
+```bash
+curl -s -X POST -H "X-Token: $TOKEN" -H "X-Username: {username}" \\
+  -H "Content-Type: application/json" \\
+  -d '{{"room":"W5N5","x":25,"y":25,"name":"Spawn1"}}' \\
+  "{server_url}/api/game/place-spawn"
+# Returns: {{"ok":1}} on success, {{"error":"invalid room"}} if room is occupied
+```
+
+4. Respawn (clear all game objects, start fresh - use if status is "lost"):
+```bash
+curl -s -X POST -H "X-Token: $TOKEN" -H "X-Username: {username}" "{server_url}/api/user/respawn"
 ```
 
 ## Screeps Combat Reference
@@ -252,13 +305,6 @@ Defense structures:
 ## Status
 - Tick: {tick}
 - Room: {room}
-
-## Current Task
-1. Check workspace for existing code
-2. Query game state (your units, enemies, resources)
-3. Analyze threats and opportunities
-4. Write/update code to improve combat effectiveness
-5. Upload and verify
 
 Remember: Other players are trying to kill you RIGHT NOW. Act fast, defend well, attack hard!
 

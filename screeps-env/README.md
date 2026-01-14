@@ -25,30 +25,30 @@ open "http://localhost:8080/(http://localhost:21025)/"
 | `start.sh` | 启动服务器 |
 | `stop.sh` | 停止服务 |
 | `client.sh` | 启动 Web 客户端 |
-| `init.sh` | 初始化 Agent（设置密码+清空代码）|
+| `init.sh` | 初始化 Agent（注册账户，不选择出生点）|
 | `reset.sh` | 重置游戏数据 |
 | `upload.sh` | 上传代码 |
 | `cli.sh` | 连接管理 CLI |
 
 ## Agent 账户
 
-初始化后可用的四个 Agent：
+初始化后可用的四个 Agent（按模型短名称命名）：
 
-| Agent | 密码 |
-|-------|------|
-| MichaelBot | password |
-| EmmaBot | password |
-| AliceBot | password |
-| JackBot | password |
+| Agent | 模型 | 密码 |
+|-------|------|------|
+| kimi | kimi-k2-turbo-preview | password |
+| claude | claude-sonnet-4 | password |
+| gpt | gpt-5 | password |
+| gemini | gemini-3-pro | password |
 
 ## 上传代码
 
 ```bash
 # 上传目录（所有 .js 文件）
-./upload.sh MichaelBot ./my-bot/
+./upload.sh kimi ./my-bot/
 
 # 上传单个文件
-./upload.sh MichaelBot ./main.js
+./upload.sh claude ./main.js
 ```
 
 ## 重置游戏
@@ -57,6 +57,15 @@ open "http://localhost:8080/(http://localhost:21025)/"
 ./reset.sh      # 重置数据
 ./start.sh      # 启动服务器
 ./init.sh       # 初始化 Agent
+```
+
+## 使用空白地图
+
+```bash
+./stop.sh
+cp server/db_empty.json server/db.json
+./start.sh
+./init.sh       # 注册新账户
 ```
 
 ## 环境要求

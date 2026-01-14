@@ -31,7 +31,7 @@ serverConfig:
   welcomeText: ""
 
   # Tick 速率 (毫秒/tick，越小越快)
-  tickRate: 200
+  tickRate: 2000
 
   # 游戏常量覆盖
   constants:

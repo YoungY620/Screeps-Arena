@@ -15,25 +15,25 @@ runner:
   yolo: true                    # 自动批准工具调用
   max_inference_duration: 120.0 # 最大推理时长（秒）
 
-# Agent 配置（仅账户和模型）
+# Agent 配置（用户名 = 模型短名称）
 agents:
-  - name: "MichaelBot"
-    username: "MichaelBot"
+  - name: "kimi"
+    username: "kimi"
     password: "password"
     model: "kimi-k2-turbo-preview"
   
-  - name: "EmmaBot"
-    username: "EmmaBot"
+  - name: "claude"
+    username: "claude"
     password: "password"
     model: "claude-sonnet-4"
   
-  - name: "AliceBot"
-    username: "AliceBot"
+  - name: "gpt"
+    username: "gpt"
     password: "password"
     model: "gpt-5"
   
-  - name: "JackBot"
-    username: "JackBot"
+  - name: "gemini"
+    username: "gemini"
     password: "password"
     model: "gemini-3-pro"
 
