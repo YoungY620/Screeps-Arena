@@ -1,0 +1,6 @@
+version: 1
+agent:
+  extend: default
+  name: screeps-kimi-worker
+  system_prompt_path: ./screeps_system_prompt.md
+  # Inherit default tools and subagents from builtin 'default' agent

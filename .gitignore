@@ -74,3 +74,6 @@ agents/screeps-agent/*.js
 agents/screeps-agent/*.py
 !agents/screeps-agent/scripts/*.py
 !agents/screeps-agent/src/**/*.py
+.runner.pid
+.claude/settings.local.json
+agents/prompt-flow-agents/fix_kimi.sh

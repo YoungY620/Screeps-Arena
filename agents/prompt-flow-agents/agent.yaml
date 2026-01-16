@@ -1,0 +1,7 @@
+version: 1
+agent:
+  extend: default
+  name: screeps-ralph
+  system_prompt_path: ./screeps_system_prompt.md
+  system_prompt_args: {}
+  # Inherit default tools and subagents from builtin 'default' agent

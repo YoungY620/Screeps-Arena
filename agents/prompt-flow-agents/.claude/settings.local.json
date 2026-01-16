@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(kimi --version:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(lsof:*)",
+      "Bash(rm:*)",
+      "Bash(mkdir:*)",
+      "Bash(killall:*)",
+      "Bash(kimi --help:*)",
+      "Bash(tee:*)",
+      "Bash(kimi --agent-file agent_simple.yaml --prompt \"Screeps task\" 2\">>\"logs/kimi_direct.log)",
+      "Bash(kimi --yolo:*)",
+      "Bash(chmod:*)",
+      "Bash(./fix_kimi.sh:*)"
+    ]
+  }
+}

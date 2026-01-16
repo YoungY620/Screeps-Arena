@@ -1,0 +1,4 @@
+version: 1
+agent:
+  name: screeps-kimi
+  system_prompt_path: ./screeps_system_prompt.md

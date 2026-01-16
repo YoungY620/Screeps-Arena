@@ -35,17 +35,18 @@ agents:
   - name: "claude"
     username: "claude"
     password: "password"
-    model: "claude-sonnet-4"
+    # model: "claude-sonnet-4"
+    model: "kimi-k2-turbo-preview"
   
   - name: "gpt"
     username: "gpt"
     password: "password"
-    model: "gpt-5"
+    model: "kimi-k2-turbo-preview"
   
   - name: "gemini"
     username: "gemini"
     password: "password"
-    model: "gemini-3-pro"
+    model: "kimi-k2-turbo-preview"
 
 # 解说员配置
 commentator:
