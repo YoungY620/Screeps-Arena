@@ -1,0 +1,23 @@
+{
+  "header": "SCRE",
+  "version_info": {
+    "major": 257,
+    "minor": 0
+  },
+  "timestamp_or_id": 838920451,
+  "coordinates": {
+    "x": 12800,
+    "y": 2
+  },
+  "flags": 0,
+  "padding1": 131072,
+  "entity_type": 768,
+  "value3": 1770,
+  "spawn_name": "Spawn1",
+  "more_flags": 50331649,
+  "final_values": {
+    "val1": 235,
+    "val2": 10,
+    "val3": 276
+  }
+}

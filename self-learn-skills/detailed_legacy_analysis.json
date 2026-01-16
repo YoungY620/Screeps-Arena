@@ -1,0 +1,39 @@
+{
+  "file_format": {
+    "header": "SCRE",
+    "version": {
+      "major": 257,
+      "minor": 0
+    }
+  },
+  "location": {
+    "room_id": 838920451,
+    "position": {
+      "x": 12800,
+      "y": 2
+    }
+  },
+  "entity": {
+    "type": 2,
+    "type_name": "Spawn",
+    "health_energy": 15336192,
+    "name": "Spawn1",
+    "flags": {
+      "primary": 0,
+      "secondary": 50331649
+    }
+  },
+  "additional_data": {
+    "reserved": 131072,
+    "final_values": [
+      235,
+      10,
+      276
+    ]
+  },
+  "interpretation": {
+    "file_type": "Screeps game save",
+    "entity_description": "Spawn structure with energy and status information",
+    "timestamp": "2026-01-16T16:08:01.471905"
+  }
+}
