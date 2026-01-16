@@ -180,8 +180,99 @@ class Logger:
 
 
 # =============================================================================
+# Skills Scanner
+# =============================================================================
+
+def scan_skills(skills_dir: Path) -> list:
+    """Scan skills directory and extract metadata from SKILL.md files."""
+    skills = []
+    
+    if not skills_dir.exists():
+        return skills
+    
+    # Scan learned skills directory
+    learned_dir = skills_dir / "learned"
+    if not learned_dir.exists():
+        return skills
+    
+    for skill_dir in learned_dir.iterdir():
+        if not skill_dir.is_dir():
+            continue
+            
+        skill_file = skill_dir / "SKILL.md"
+        if not skill_file.exists():
+            continue
+        
+        try:
+            # Read YAML frontmatter from SKILL.md
+            with open(skill_file, 'r') as f:
+                lines = f.readlines()
+            
+            # Look for frontmatter (between --- markers)
+            if len(lines) < 3 or lines[0].strip() != '---':
+                continue
+            
+            frontmatter = {}
+            for line in lines[1:]:
+                if line.strip() == '---':
+                    break
+                if ':' in line:
+                    key, value = line.split(':', 1)
+                    frontmatter[key.strip()] = value.strip().strip('"\' ')
+            
+            if 'name' in frontmatter and 'description' in frontmatter:
+                skills.append({
+                    'name': frontmatter['name'],
+                    'path': str(skill_dir.absolute()),
+                    'description': frontmatter['description']
+                })
+        except Exception as e:
+            # Skip malformed skill files
+            print(f"Warning: Failed to parse skill at {skill_file}: {e}")
+            continue
+    
+    return skills
+
+
+# =============================================================================
 # Prompt
 # =============================================================================
+
+def build_skills_section(skills_dir: Path) -> str:
+    """Dynamically build the skills section of the prompt."""
+    skills = scan_skills(skills_dir)
+    
+    if not skills:
+        return """## Skills Directory
+
+No learned skills available yet. The skills directory will be populated as the agent learns from experiences.
+"""
+    
+    skills_root = str(skills_dir.absolute())
+    section = f"""## Skills Directory
+
+You have access to a skills directory that contains reusable knowledge and capabilities:
+
+**Skills Root:** `{skills_root}`
+- **Name:** skills
+- **Description:** Central repository of reusable skills, tools, and knowledge for enhancing agent capabilities
+
+**Learned Skills:**
+
+"""
+    
+    for idx, skill in enumerate(skills, 1):
+        section += f"""{idx}. **{skill['name']}**
+   - **Path:** `{skill['path']}`
+   - **Description:** {skill['description']}
+
+"""
+    
+    section += """You can read skill files to gain contextual knowledge about specific tasks, but these are primarily for enhancing your understanding rather than direct execution.
+"""
+    
+    return section
+
 
 PROMPT_TEMPLATE = '''You are "{name}", a Screeps AI agent competing in a PvP arena.
 
@@ -207,6 +298,8 @@ This is YOUR directory. Use it to:
 - Write JavaScript code files (main.js, etc.)
 - Files persist between runs
 - Check existing files before starting
+
+{skills_section}
 
 ## CLI Commands (via Shell tool)
 
@@ -347,11 +440,36 @@ class Agent:
         self.workspace = Path("workspace") / name
         self.workspace.mkdir(parents=True, exist_ok=True)
         
+        # Copy skills directory to agent workspace for isolation
+        self._setup_skills_directory()
+        
         self.logger = Logger(name, self.workspace)
         self._kimi: KimiCLI = None
         self._stop = asyncio.Event()
         self._user_id = None
         self._room = None
+    
+    def _setup_skills_directory(self):
+        """Copy skills directory to agent workspace for isolation."""
+        source_skills_dir = Path("/Users/moonshot/dev/local-screeps/self-learn-skills/skills")
+        target_skills_dir = self.workspace / "skills"
+        
+        if not source_skills_dir.exists():
+            print(f"[{self.name}] Warning: Source skills directory not found at {source_skills_dir}")
+            return
+        
+        try:
+            # Remove existing skills directory if it exists
+            if target_skills_dir.exists():
+                import shutil
+                shutil.rmtree(target_skills_dir)
+            
+            # Copy the entire skills directory
+            import shutil
+            shutil.copytree(source_skills_dir, target_skills_dir)
+            print(f"[{self.name}] Copied skills directory to {target_skills_dir}")
+        except Exception as e:
+            print(f"[{self.name}] Error copying skills directory: {e}")
     
     async def _init_kimi(self):
         if not self._kimi:
@@ -379,6 +497,10 @@ class Agent:
         return 0
     
     def _build_prompt(self, tick: int) -> str:
+        # Build dynamic skills section
+        skills_dir = self.workspace / "skills"
+        skills_section = build_skills_section(skills_dir)
+        
         return PROMPT_TEMPLATE.format(
             name=self.name,
             username=self.username,
@@ -388,6 +510,7 @@ class Agent:
             workspace=self.workspace.absolute(),
             tick=tick,
             room=self._room,
+            skills_section=skills_section,
         )
     
     async def _inference(self, prompt: str) -> bool:
