@@ -50,7 +50,7 @@ agents:
 
 # 解说员配置
 commentator:
-  enabled: false              # 是否启用解说员
+  enabled: true              # 是否启用解说员
   name: "commentator"        # 解说员名称
   model: "kimi-k2-turbo-preview"  # 解说员使用的模型
   interval: 60.0               # 解说间隔（秒）
