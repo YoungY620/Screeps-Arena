@@ -1,4 +1,4 @@
-# 自学习技能系统：赋予智能体经验结晶能力
+# meta-skill
 
 > *基于原始草稿：[README.draft.md](./README.draft.md)*
 
