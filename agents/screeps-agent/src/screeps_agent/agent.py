@@ -327,20 +327,64 @@ Common commands (replace YOUR_COMMAND_HERE):
 - Room objects: `storage.db["rooms.objects"].find({{room: "{room}"}}).then(o=>print(JSON.stringify(o)))`
 - Find enemies: `storage.db["rooms.objects"].find({{type: "creep"}}).then(o=>print(JSON.stringify(o.filter(c=>c.user!="YOUR_USER_ID"))))`
 
-## HTTP API Authentication
+## ⚠️ FIRST PRIORITY: Login & Initialize Game
 
-**IMPORTANT:** This server requires Token-based authentication. Basic Auth (-u user:pass) does NOT work!
+**BEFORE doing anything else, you MUST complete these steps:**
 
-### Step 1: Get auth token (do this first!)
+### Step 1: Get Auth Token
 ```bash
 TOKEN=$(curl -s -X POST -H "Content-Type: application/json" \\
   -d '{{"email":"{username}@test.com","password":"{password}"}}' \\
-  "{server_url}/api/auth/signin" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+  "{server_url}/api/auth/signin" | jq -r '.token')
 echo "Token: $TOKEN"
 ```
 
-### Step 2: Use token for all API calls
-All subsequent API calls MUST include these headers:
+### Step 2: Check Your World Status
+```bash
+STATUS=$(curl -s -H "X-Token: $TOKEN" -H "X-Username: {username}" "{server_url}/api/user/world-status")
+echo "Status: $STATUS"
+# Returns: {{"ok":1,"status":"normal|lost|empty"}}
+# - "normal": You have a spawn, can play normally
+# - "empty": No spawn yet, MUST place one first!
+# - "lost": All spawns destroyed, need to respawn
+```
+
+### Step 3: If Status is "empty" - Place Your First Spawn!
+```bash
+# Get available rooms
+ROOMS=$(curl -s -H "X-Token: $TOKEN" -H "X-Username: {username}" "{server_url}/api/user/world-start-room")
+echo "Available rooms: $ROOMS"
+
+# Pick the first available room (or try others if occupied)
+ROOM=$(echo $ROOMS | jq -r '.room[0]')
+
+# Place spawn at center of room (x=25, y=25 is usually safe)
+curl -s -X POST -H "X-Token: $TOKEN" -H "X-Username: {username}" \\
+  -H "Content-Type: application/json" \\
+  -d "{{\"room\":\"$ROOM\",\"x\":25,\"y\":25,\"name\":\"Spawn1\"}}" \\
+  "{server_url}/api/game/place-spawn"
+# Returns: {{"ok":1}} on success
+# If error "invalid room", try next room from the list or different x,y coordinates
+```
+
+### Step 4: If Status is "lost" - Respawn
+```bash
+curl -s -X POST -H "X-Token: $TOKEN" -H "X-Username: {username}" "{server_url}/api/user/respawn"
+# Then place spawn using Step 3
+```
+
+### Step 5: Verify You Have a Spawn
+```bash
+# Check your room and spawn
+curl -s -H "X-Token: $TOKEN" -H "X-Username: {username}" "{server_url}/api/user/world-status"
+# Should return: {{"ok":1,"status":"normal"}}
+```
+
+**IMPORTANT:** If status is NOT "normal", you cannot spawn creeps! Fix this first!
+
+## HTTP API Authentication
+
+All API calls require these headers:
 - `-H "X-Token: $TOKEN"`
 - `-H "X-Username: {username}"`
 
@@ -351,45 +395,12 @@ All subsequent API calls MUST include these headers:
 WriteFile: {workspace}/main.js
 ```
 
-2. Upload from file (with token auth):
+2. Upload from file:
 ```bash
 curl -s -X POST "{server_url}/api/user/code" \\
   -H "X-Token: $TOKEN" -H "X-Username: {username}" \\
   -H "Content-Type: application/json" \\
   -d "$(jq -n --arg code \\"$(cat {workspace}/main.js)\\" '{{branch:\\"default\\",modules:{{main:$code}}}}')"
-```
-
-## Respawn & Place Spawn (HTTP API)
-
-If you need to respawn or place your initial spawn:
-
-1. Check world status:
-```bash
-curl -s -H "X-Token: $TOKEN" -H "X-Username: {username}" "{server_url}/api/user/world-status"
-# Returns: {{"ok":1,"status":"normal|lost|empty"}}
-# - "normal": playing normally
-# - "lost": all spawns destroyed, need to respawn
-# - "empty": no spawn yet, need to place one
-```
-
-2. Get recommended start room:
-```bash
-curl -s -H "X-Token: $TOKEN" -H "X-Username: {username}" "{server_url}/api/user/world-start-room"
-# Returns: {{"ok":1,"room":["W5N5"]}}
-```
-
-3. Place initial spawn (status must be "empty", use room from step 2):
-```bash
-curl -s -X POST -H "X-Token: $TOKEN" -H "X-Username: {username}" \\
-  -H "Content-Type: application/json" \\
-  -d '{{"room":"W5N5","x":25,"y":25,"name":"Spawn1"}}' \\
-  "{server_url}/api/game/place-spawn"
-# Returns: {{"ok":1}} on success, {{"error":"invalid room"}} if room is occupied
-```
-
-4. Respawn (clear all game objects, start fresh - use if status is "lost"):
-```bash
-curl -s -X POST -H "X-Token: $TOKEN" -H "X-Username: {username}" "{server_url}/api/user/respawn"
 ```
 
 ## Screeps Combat Reference
@@ -436,8 +447,8 @@ class Agent:
         self.interval = interval
         self.yolo = yolo
         
-        # Each agent gets own workspace
-        self.workspace = Path("workspace") / name
+        # Each agent gets own workspace (use absolute path)
+        self.workspace = Path(__file__).parent.parent.parent / "workspace" / name
         self.workspace.mkdir(parents=True, exist_ok=True)
         
         # Copy skills directory to agent workspace for isolation
@@ -602,7 +613,7 @@ async def main():
     )
     
     # 启动沙箱容器
-    workspace_root = Path("workspace")
+    workspace_root = Path(__file__).parent.parent.parent / "workspace"
     if not start_sandbox_containers(workspace_root):
         print("Failed to start sandbox containers")
         return

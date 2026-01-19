@@ -1,24 +1,20 @@
-const net = require('net');
+const net = require("net");
 const client = new net.Socket();
-let querySent = false;
 
-client.connect(21026, 'localhost');
+client.connect(21026, "localhost", () => {
+  console.log("Connected to CLI");
+  client.write('storage.env.get("gameTime")\n');
+});
 
-client.on('data', (data) => {
-  const str = data.toString();
-  
-  if (!querySent && str.includes('< ')) {
-    querySent = true;
-    console.log('Checking for GPT creeps...');
-    client.write('storage.db.creeps.count({user: "b331714fa09c566"})\n');
-  }
-  
-  // Look for numbers (creep count)
-  if (str.match(/^\s*\d+\s*$/)) {
-    console.log('GPT Creep Count:', str.trim());
-  }
+client.on("data", (data) => {
+  console.log("Response:", data.toString());
+  client.destroy();
+});
+
+client.on("error", (err) => {
+  console.error("Error:", err.message);
 });
 
 setTimeout(() => {
-  client.end();
+  client.destroy();
 }, 5000);

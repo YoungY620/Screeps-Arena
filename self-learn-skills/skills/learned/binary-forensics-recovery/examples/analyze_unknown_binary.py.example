@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+"""
+Binary Forensics Template - Safe Analysis Script
+基于经验: 永远不要假设小端序，始终验证领域约束
+"""
+
+import struct
+import sys
+from dataclasses import dataclass
+from typing import Tuple, Optional, List
+from pathlib import Path
+
+@dataclass
+class ParseCandidate:
+    """候选解析结果，带置信度评分"""
+    endian: str  # 'big' or 'little'
+    values: dict
+    confidence: float  # 0.0-1.0
+    warnings: List[str]
+
+class BinaryForensics:
+    """
+    通用二进制文件启发式分析器
+    经验教训来源: legacy.save 恢复 (Screeps格式)
+    """
+    
+    def __init__(self, filepath: str, domain_constraints: dict = None):
+        self.filepath = Path(filepath)
+        self.data = None
+        self.size = 0
+        # 领域约束示例: 游戏坐标应在-120到120之间
+        self.constraints = domain_constraints or {
+            'coord_range': (-128, 128),
+            'max_reasonable_id': 100000,
+            'timestamp_range': (946684800, 1893456000)  # 2000-2030年
+        }
+    
+    def load(self) -> bytes:
+        """加载并基础验证"""
+        if not self.filepath.exists():
+            raise FileNotFoundError(f"File not found: {self.filepath}")
+        
+        self.data = self.filepath.read_bytes()
+        self.size = len(self.data)
+        print(f"[INFO] Loaded {self.size} bytes")
+        
+        # 熵简单估算(避免matplotlib/numpy依赖)
+        byte_counts = [self.data.count(i) for i in range(256)]
+        probs = [c/self.size for c in byte_counts if c > 0]
+        entropy = -sum(p * (p.bit_length()-1) for p in probs)  # 简化log2近似
+        print(f"[INFO] Approximate entropy: {entropy:.2f} (<7=structured, >7.5=encrypted)")
+        
+        return self.data
+    
+    def candidate_parse_coord(self, offset: int) -> Tuple[ParseCandidate, ParseCandidate]:
+        """
+        在指定偏移尝试解析一对uint16作为坐标，返回大小端两种候选
+        关键教训: 永远不要只返回一种解析！
+        """
+        if offset + 4 > self.size:
+            raise IndexError("Offset out of bounds")
+        
+        buf = self.data[offset:offset+4]
+        
+        # Big Endian解析
+        x_be, y_be = struct.unpack('>HH', buf)
+        cand_be = ParseCandidate(
+            endian='big',
+            values={'x': x_be, 'y': y_be},
+            confidence=0.0,
+            warnings=[]
+        )
+        
+        # Little Endian解析  
+        x_le, y_le = struct.unpack('<HH', buf)
+        cand_le = ParseCandidate(
+            endian='little', 
+            values={'x': x_le, 'y': y_le},
+            confidence=0.0,
+            warnings=[]
+        )
+        
+        # 启发式置信度评分 (领域知识验证)
+        cr_min, cr_max = self.constraints['coord_range']
+        
+        for cand in [cand_be, cand_le]:
+            x, y = cand.values['x'], cand.values['y']
+            # 检查是否在合理范围
+            if cr_min <= x <= cr_max and cr_min <= y <= cr_max:
+                cand.confidence += 0.4
+            else:
+                cand.warnings.append(f"Coordinate ({x},{y}) outside reasonable range {self.constraints['coord_range']}")
+            
+            # 检查是否为常见小数字(50, 100等)
+            if x < 1000 and y < 1000:
+                cand.confidence += 0.3
+                
+            # 检查是否相等(常见于默认坐标如50,50)
+            if x == y and x != 0:
+                cand.confidence += 0.1
+        
+        return cand_be, cand_le
+    
+    def find_pascal_strings(self, min_len: int = 3) -> List[Tuple[int, str]]:
+        """
+        查找Pascal风格字符串: [1字节长度][N字节ASCII]
+        经验教训: 游戏存档常用此格式而非C风格null结尾字符串
+        """
+        results = []
+        i = 0
+        while i < self.size - min_len - 1:
+            length = self.data[i]
+            if min_len <= length <= 60:  # 合理字符串长度上限
+                try:
+                    string_bytes = self.data[i+1:i+1+length]
+                    decoded = string_bytes.decode('ascii')
+                    # 验证: 是否可打印ASCII?
+                    if all(32 <= ord(c) <= 126 for c in decoded):
+                        results.append((i, decoded))
+                        i += length  # 跳过已识别区域加速
+                except UnicodeDecodeError:
+                    pass
+            i += 1
+        return results
+    
+    def detect_alignment_violations(self, struct_fields: List[Tuple[str, int, str]]) -> List[str]:
+        """
+        检测字段是否违反标准对齐规则(暗示packed结构体)
+        struct_fields: [(name, offset, type)], type: 'u16', 'u32'等
+        """
+        warnings = []
+        for name, offset, type_str in struct_fields:
+            if type_str in ('u16', 'i16') and offset % 2 != 0:
+                warnings.append(f"Field '{name}' at 0x{offset:02x} violates 2-byte alignment (packed struct suspected)")
+            elif type_str in ('u32', 'i32', 'f32') and offset % 4 != 0:
+                warnings.append(f"Field '{name}' at 0x{offset:02x} violates 4-byte alignment (packed struct suspected)")
+        return warnings
+    
+    def recover(self):
+        """主恢复流程示例"""
+        print(f"=== Binary Forensics Report: {self.filepath.name} ===\n")
+        
+        self.load()
+        
+        # 示例: 假设在偏移0x0a处有坐标(来自Screeps经验)
+        test_offset = 0x0a
+        print(f"[HEURISTIC] Testing coordinates at offset 0x{test_offset:02x}...")
+        
+        be_cand, le_cand = self.candidate_parse_coord(test_offset)
+        
+        print(f"  Big Endian:    ({be_cand.values['x']}, {be_cand.values['y']}) [Confidence: {be_cand.confidence:.1f}]")
+        if be_cand.warnings:
+            print(f"    Warnings: {be_cand.warnings}")
+            
+        print(f"  Little Endian: ({le_cand.values['x']}, {le_cand.values['y']}) [Confidence: {le_cand.confidence:.1f}]")
+        if le_cand.warnings:
+            print(f"    Warnings: {le_cand.warnings}")
+        
+        # 自动选择
+        if be_cand.confidence > le_cand.confidence + 0.3:
+            print(f"\n[CONCLUSION] Recommend BIG ENDIAN (confidence gap significant)")
+        elif le_cand.confidence > be_cand.confidence + 0.3:
+            print(f"\n[CONCLUSION] Recommend LITTLE ENDIAN")
+        else:
+            print(f"\n[WARNING] Ambiguous endianness - need more domain constraints")
+        
+        # 字符串搜索
+        print("\n[PASCAL STRINGS] Found variable-length strings:")
+        for offset, string in self.find_pascal_strings():
+            print(f"  0x{offset:02x}: '{string}' (len={len(string)})")
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: analyze_unknown_binary.py <file.bin>")
+        sys.exit(1)
+    
+    # 使用Screeps领域约束实例化
+    forensics = BinaryForensics(
+        sys.argv[1],
+        domain_constraints={
+            'coord_range': (-120, 120),  # Screeps世界边界
+            'max_reasonable_id': 10000
+        }
+    )
+    forensics.recover()

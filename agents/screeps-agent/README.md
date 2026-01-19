@@ -9,6 +9,7 @@
 - **文件持久化**: Agent 写的代码文件在循环间保留
 - **同一 Session**: 每个 Agent 使用同一个 KimiCLI session，保留对话历史
 - **JSONL 日志**: 完整记录推理过程和工具调用
+- **AI 解说员**: 独立解说员实时分析战况，输出戏剧化解说
 
 ## 安装
 
@@ -66,34 +67,85 @@ agents:
 ### 3. 运行
 
 ```bash
+# === 运行所有 agents + 解说员（推荐）===
 # 后台运行
-nohup uv run python scripts/run_all_agents.py > logs/agents.log 2>&1 &
+nohup uv run python scripts/run_all_agents.py --commentator > agents.log 2>&1 &
 echo "PID: $!"
 
 # 前台运行（调试）
+uv run python scripts/run_all_agents.py --commentator
+
+# === 只运行 agents（不含解说员）===
 uv run python scripts/run_all_agents.py
+
+# === 只运行解说员（独立模式）===
+uv run python scripts/run_commentator.py
 ```
 
 ### 4. 查看状态
 
 ```bash
-# 查看日志
-tail -f logs/agents.log
+# 查看进程状态
+ps aux | grep run_all_agents | grep -v grep
 
-# 查看 JSONL 日志行数
-wc -l data/*.jsonl
+# 查看 agent JSONL 日志（每个 agent 独立日志）
+for agent in kimi claude gpt gemini; do
+  echo "=== $agent ==="
+  tail -3 workspace/$agent/logs.jsonl
+done
 
-# 生成报告
-uv run python scripts/report.py
+# 查看解说员输出
+cat workspace/commentator/game_commentary.md
 
 # 查看 workspace 代码
 cat workspace/kimi/main.js
+
+# 生成报告
+uv run python scripts/report.py
 ```
 
 ### 5. 停止
 
 ```bash
+# 停止所有 agents 和解说员
 pkill -f run_all_agents
+
+# 或强制停止
+ps aux | grep run_all_agents | grep -v grep | awk '{print $2}' | xargs kill -9
+```
+
+## 解说员功能
+
+解说员是一个独立的 AI Agent，专门负责观察战场并生成戏剧性解说。
+
+### 特点
+
+- **自主探索**: 通过 CLI 和 API 主动查询游戏状态
+- **日志分析**: 读取所有 agent 的日志了解行为意图
+- **人格化解说**: 为每个 AI 赋予独特性格
+- **Markdown 输出**: 解说内容保存到 `workspace/commentator/game_commentary.md`
+
+### 配置
+
+在 `config.yaml` 中配置解说员:
+
+```yaml
+commentator:
+  enabled: true              # 是否启用
+  name: "commentator"
+  model: "kimi-k2-turbo-preview"
+  interval: 60.0             # 解说间隔（秒）
+  style: "dramatic"          # 风格: dramatic/humorous/analytical
+```
+
+### 查看解说
+
+```bash
+# 实时查看解说
+cat workspace/commentator/game_commentary.md
+
+# 持续监控新内容
+tail -f workspace/commentator/game_commentary.md
 ```
 
 ## 架构
@@ -101,22 +153,26 @@ pkill -f run_all_agents
 ```
 screeps-agent/
 ├── config.yaml              # 配置文件
-├── data/                    # JSONL 日志（每个 agent 一个文件）
-│   ├── kimi.jsonl
-│   ├── claude.jsonl
-│   └── ...
-├── workspace/               # Agent 代码目录
-│   ├── kimi/main.js
-│   ├── claude/main.js
-│   └── ...
-├── logs/                    # 运行日志
-│   └── agents.log
+├── workspace/               # Agent 工作目录（每个 agent 独立目录）
+│   ├── kimi/
+│   │   ├── main.js          # Agent 代码
+│   │   ├── logs.jsonl       # Agent 日志
+│   │   └── skills/          # 学习到的技能
+│   ├── claude/
+│   ├── gpt/
+│   ├── gemini/
+│   └── commentator/
+│       └── game_commentary.md  # 解说员输出
+├── docker/                  # 沙箱容器配置
+├── agents.log               # 主进程运行日志（stdout/stderr）
 ├── scripts/
-│   ├── run_all_agents.py    # 入口
+│   ├── run_all_agents.py    # 入口（支持 --commentator 参数）
+│   ├── run_commentator.py   # 独立解说员入口
 │   ├── report.py            # 生成报告
 │   └── query_logs.py        # 查询日志
 └── src/screeps_agent/
-    └── agent.py             # 全部代码 (~350 行)
+    ├── agent.py             # Agent 核心代码
+    └── commentator.py       # 解说员代码
 ```
 
 ## Agent 工作流程
@@ -193,11 +249,14 @@ lsof -i :21026  # 查看是 IPv4 还是 IPv6
 
 ### 日志为空
 
-检查日志路径是否正确：
+检查 agent workspace 中的日志：
 
 ```bash
-ls -la data/
-# 应该有 kimi.jsonl 等文件
+# 每个 agent 的日志在自己的 workspace 中
+ls -la workspace/*/logs.jsonl
+
+# 查看具体 agent 日志
+tail workspace/kimi/logs.jsonl
 ```
 
 ### Agent 无响应
@@ -205,7 +264,14 @@ ls -la data/
 查看详细日志：
 
 ```bash
-cat logs/agents.log
+# 查看主进程日志
+cat agents.log
+
+# 查看 agent 具体日志
+tail -20 workspace/kimi/logs.jsonl
+
+# 检查进程状态
+ps aux | grep run_all_agents
 ```
 
 ## 开发

@@ -1,617 +1,439 @@
-// FINAL EXTINCTION AI - ULTIMATE OMEGA v5.0
-// Final battle total extinction + absolute annihilation + complete elimination
+// Claude's Screeps AI - Advanced PvP Arena Combat Agent
+// ULTIMATE GOAL: DESTROY ALL OPPONENTS WHILE DEFENDING
+// Enhanced with better spawning logic and multi-room support
 
-const ROLES = {
-    HARVESTER: 'harvester',
-    BUILDER: 'builder',
-    UPGRADER: 'upgrader',
-    GUARD: 'guard',
-    ATTACKER: 'attacker',
-    RANGED: 'ranged',
-    HEALER: 'healer',
-    SCOUT: 'scout',
-    SABOTEUR: 'saboteur',
-    BERSERKER: 'berserker',
-    ASSASSIN: 'assassin',
-    DESTROYER: 'destroyer',
-    ANNIHILATOR: 'annihilator',
-    APOCALYPSE: 'apocalypse',
-    EXTINCTION: 'extinction',
-    OMEGA: 'omega',
-    TERMINAL: 'terminal',
-    OBLITERATION: 'obliteration',
-    FINAL: 'final'
-};
-
-function getFinalBody(role, energy) {
-    // Final battle extinction bodies for absolute annihilation
-    if (role === ROLES.FINAL) {
-        // Ultimate final extinction units - maximum possible extinction
-        if (energy >= 3000) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE];
-        if (energy >= 2800) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE];
-        if (energy >= 2600) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 2400) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 2200) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 2000) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 1800) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 1600) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-    }
-    if (role === ROLES.TERMINAL) {
-        // Terminal extinction specialists
-        if (energy >= 2000) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE];
-        if (energy >= 1800) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 1600) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 1400) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 1200) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-    }
-    if (role === ROLES.OBLITERATION) {
-        // Total obliteration units
-        if (energy >= 1800) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE];
-        if (energy >= 1600) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 1400) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 1200) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-    }
-    if (role === ROLES.OMEGA) {
-        // Omega final extinction units
-        if (energy >= 2200) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE];
-        if (energy >= 2000) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE];
-        if (energy >= 1800) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 1600) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 1400) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-    }
-    if (role === ROLES.EXTINCTION) {
-        // Extinction final specialists
-        if (energy >= 2000) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE];
-        if (energy >= 1800) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 1600) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 1400) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-    }
-    if (role === ROLES.APOCALYPSE) {
-        // Final apocalyptic extinction units
-        if (energy >= 1800) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE];
-        if (energy >= 1600) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 1400) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 1200) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-    }
-    if (role === ROLES.ANNIHILATOR) {
-        // Final annihilation specialists
-        if (energy >= 1600) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE];
-        if (energy >= 1400) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 1200) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-    }
-    if (role === ROLES.BERSERKER) {
-        // Final berserker extinction units
-        if (energy >= 1500) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE];
-        if (energy >= 1300) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 1100) return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        return [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-    }
-    if (role === ROLES.ASSASSIN) {
-        // Final assassin extinction units
-        if (energy >= 1200) return [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK];
-        if (energy >= 1000) return [MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK];
-        if (energy >= 800) return [MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK];
-        return [MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK];
-    }
-    if (role === ROLES.RANGED) {
-        // Final ranged extinction units
-        if (energy >= 1200) return [RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE];
-        if (energy >= 1000) return [RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE];
-        if (energy >= 800) return [RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE];
-        return [RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE];
-    }
-    if (role === ROLES.HEALER) {
-        // Final extinction healers
-        if (energy >= 1400) return [HEAL, HEAL, HEAL, HEAL, HEAL, MOVE, MOVE, MOVE];
-        if (energy >= 1200) return [HEAL, HEAL, HEAL, HEAL, MOVE, MOVE, MOVE];
-        if (energy >= 1000) return [HEAL, HEAL, HEAL, MOVE, MOVE, MOVE];
-        return [HEAL, HEAL, MOVE, MOVE, MOVE];
-    }
-    if (role === ROLES.GUARD) {
-        // Final extinction defense units
-        if (energy >= 1400) return [TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE];
-        if (energy >= 1200) return [TOUGH, TOUGH, TOUGH, TOUGH, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        if (energy >= 1000) return [TOUGH, TOUGH, TOUGH, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-        return [TOUGH, TOUGH, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE];
-    }
-    if (role === ROLES.SABOTEUR) {
-        // Final extinction warfare units
-        if (energy >= 1200) return [CLAIM, CLAIM, CLAIM, CLAIM, MOVE, MOVE, MOVE];
-        if (energy >= 1000) return [CLAIM, CLAIM, CLAIM, MOVE, MOVE, MOVE];
-        if (energy >= 800) return [CLAIM, CLAIM, MOVE, MOVE, MOVE];
-        return [CLAIM, MOVE, MOVE, MOVE];
-    }
-    if (role === ROLES.SCOUT) {
-        // Final extinction reconnaissance
-        return [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE];
-    }
-    // Economic units - final extinction war economy
-    if (energy >= 1000) return [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE];
-    if (energy >= 800) return [WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE];
-    if (energy >= 600) return [WORK, WORK, WORK, CARRY, CARRY, MOVE];
-    return [WORK, WORK, CARRY, MOVE];
-}
-
-function spawnFinalUnit(spawn, role, body) {
-    if (!spawn.spawning && spawn.store[RESOURCE_ENERGY] >= body.reduce((sum, part) => sum + BODYPART_COST[part], 0)) {
-        const name = role + '_' + Game.time + '_' + Math.floor(Math.random() * 100000);
-        const result = spawn.spawnCreep(body, name, {memory: {role: role, born: Game.time, squad: 'final_extinction'}});
-        if (result === OK) {
-            console.log('💀 FINAL EXTINCTION DEPLOYED: ' + name + ' (' + role.toUpperCase() + ')');
-            return true;
+module.exports.loop = function () {
+    // Clear memory of dead creeps
+    for(var name in Memory.creeps) {
+        if(!Game.creeps[name]) {
+            delete Memory.creeps[name];
+            console.log('Clearing non-existing creep memory:', name);
         }
     }
-    return false;
-}
 
-function finalExtinctionDefense(room) {
-    // Absolute final extinction-level defense protocol
-    const enemies = room.find(FIND_HOSTILE_CREEPS);
+    // Emergency: If we have no spawn, log critical error and try to place one
+    const spawns = Object.values(Game.spawns);
+    if (spawns.length === 0) {
+        console.log('CRITICAL: No spawns available! Attempting emergency spawn placement...');
+        attemptSpawnPlacement();
+        return;
+    }
+
+    const mainSpawn = spawns[0];
+    const room = mainSpawn.room;
+    
+    // Count our current forces
+    const creeps = Object.values(Game.creeps);
+    const workers = creeps.filter(c => c.memory.role === 'worker');
+    const attackers = creeps.filter(c => c.memory.role === 'attacker');
+    const healers = creeps.filter(c => c.memory.role === 'healer');
+    const rangers = creeps.filter(c => c.memory.role === 'ranger');
     const towers = room.find(FIND_MY_STRUCTURES, {filter: {structureType: STRUCTURE_TOWER}});
     
-    if (enemies.length > 0) {
-        console.log('🚨 FINAL EXTINCTION PROTOCOL: ' + enemies.length + ' ENEMIES DETECTED IN ' + room.name);
-        
-        // Final extinction tower barrage - maximum annihilation
-        towers.forEach(tower => {
-            if (tower.store[RESOURCE_ENERGY] >= 10) {
-                const target = tower.pos.findClosestByRange(enemies);
-                if (target) {
-                    const damage = Math.floor(600 / Math.max(1, tower.pos.getRangeTo(target)));
-                    tower.attack(target);
-                    console.log('🔥 FINAL EXTINCTION TOWER: ' + target.name + ' (' + damage + ' FINAL EXTINCTION DAMAGE)');
-                }
+    console.log(`Tick ${Game.time}: Workers: ${workers.length}, Attackers: ${attackers.length}, Rangers: ${rangers.length}, Healers: ${healers.length}, Towers: ${towers.length}, Energy: ${room.energyAvailable}/${room.energyCapacityAvailable}`);
+
+    // ENHANCED PHASE 1: Economy with minimum viable force
+    const totalMilitary = attackers.length + rangers.length;
+    const needWorkers = workers.length < Math.max(2, Math.ceil(room.energyCapacityAvailable / 300));
+    const needDefense = totalMilitary < 2;
+    
+    if (!mainSpawn.spawning) {
+        if (needWorkers && (!needDefense || workers.length === 0)) {
+            spawnWorker(mainSpawn);
+        } else if (needDefense && room.energyAvailable >= 260) {
+            // Prioritize rangers for better defense
+            spawnRanger(mainSpawn);
+        } else if (totalMilitary < 5 && room.energyAvailable >= 290) {
+            // Build larger army
+            if (rangers.length < attackers.length) {
+                spawnRanger(mainSpawn);
+            } else if (healers.length < Math.floor(totalMilitary / 3)) {
+                spawnHealer(mainSpawn);
+            } else {
+                spawnAttacker(mainSpawn);
             }
-        });
-        
-        // Final extinction military deployment - overwhelming extinction force
-        const spawns = room.find(FIND_MY_SPAWNS);
-        spawns.forEach(spawn => {
-            const enemyCount = enemies.length;
-            const finalExtinctionNeeded = Math.max(30, enemyCount * 8); // MINIMUM 30 UNITS, 8:1 FINAL EXTINCTION RATIO
-            
-            console.log('💀 FINAL EXTINCTION DEPLOYMENT: ' + finalExtinctionNeeded + ' UNITS TO FINAL EXTINCT ' + enemyCount + ' ENEMIES');
-            
-            for (let i = 0; i < finalExtinctionNeeded; i++) {
-                if (i % 30 === 0) {
-                    spawnFinalUnit(spawn, ROLES.FINAL, getFinalBody(ROLES.FINAL, spawn.store[RESOURCE_ENERGY]));
-                } else if (i % 25 === 0) {
-                    spawnFinalUnit(spawn, ROLES.TERMINAL, getFinalBody(ROLES.TERMINAL, spawn.store[RESOURCE_ENERGY]));
-                } else if (i % 22 === 0) {
-                    spawnFinalUnit(spawn, ROLES.OBLITERATION, getFinalBody(ROLES.OBLITERATION, spawn.store[RESOURCE_ENERGY]));
-                } else if (i % 20 === 0) {
-                    spawnFinalUnit(spawn, ROLES.OMEGA, getFinalBody(ROLES.OMEGA, spawn.store[RESOURCE_ENERGY]));
-                } else if (i % 18 === 0) {
-                    spawnFinalUnit(spawn, ROLES.EXTINCTION, getFinalBody(ROLES.EXTINCTION, spawn.store[RESOURCE_ENERGY]));
-                } else if (i % 15 === 0) {
-                    spawnFinalUnit(spawn, ROLES.APOCALYPSE, getFinalBody(ROLES.APOCALYPSE, spawn.store[RESOURCE_ENERGY]));
-                } else if (i % 12 === 0) {
-                    spawnFinalUnit(spawn, ROLES.ANNIHILATOR, getFinalBody(ROLES.ANNIHILATOR, spawn.store[RESOURCE_ENERGY]));
-                } else if (i % 10 === 0) {
-                    spawnFinalUnit(spawn, ROLES.BERSERKER, getFinalBody(ROLES.BERSERKER, spawn.store[RESOURCE_ENERGY]));
-                } else if (i % 8 === 0) {
-                    spawnFinalUnit(spawn, ROLES.ASSASSIN, getFinalBody(ROLES.ASSASSIN, spawn.store[RESOURCE_ENERGY]));
-                } else if (i % 6 === 0) {
-                    spawnFinalUnit(spawn, ROLES.DESTROYER, getFinalBody(ROLES.DESTROYER, spawn.store[RESOURCE_ENERGY]));
-                } else if (i % 4 === 0) {
-                    spawnFinalUnit(spawn, ROLES.HEALER, getFinalBody(ROLES.HEALER, spawn.store[RESOURCE_ENERGY]));
-                } else {
-                    spawnFinalUnit(spawn, ROLES.ATTACKER, getFinalBody(ROLES.ATTACKER, spawn.store[RESOURCE_ENERGY]));
-                }
-            }
-        });
-        
-        return true;
+        } else if (workers.length < 4 && room.energyAvailable >= 250) {
+            spawnWorker(mainSpawn);
+        }
     }
-    return false;
+
+    // ENHANCED DEFENSE: Build critical structures
+    buildDefenses(room, mainSpawn);
+
+    // Execute all creep behaviors
+    for(var name in Game.creeps) {
+        var creep = Game.creeps[name];
+        
+        if(creep.memory.role == 'worker') {
+            runWorker(creep);
+        }
+        else if(creep.memory.role == 'attacker') {
+            runAttacker(creep);
+        }
+        else if(creep.memory.role == 'ranger') {
+            runRanger(creep);
+        }
+        else if(creep.memory.role == 'healer') {
+            runHealer(creep);
+        }
+    }
+
+    // Enhanced Tower defense with prioritization
+    runTowers(towers, room);
+
+    // Scout and coordinate attacks every 5 ticks
+    if (Game.time % 5 === 0) {
+        scoutAndCoordinate();
+    }
+    
+    // Place spawn if we're in an empty world
+    if (Game.time % 50 === 0 && spawns.length === 0) {
+        attemptSpawnPlacement();
+    }
+};
+
+function attemptSpawnPlacement() {
+    console.log('Attempting to place spawn...');
+    // In an empty world, try to place spawn via game API
+    const room = Game.rooms.W5N5;
+    if (room && !Object.keys(Game.spawns).length) {
+        console.log('Room W5N5 available, trying to place spawn...');
+        // Room is available but we need to use HTTP API to place spawn
+        // For now, just log that we need spawn placement
+        console.log('NEED SPAWN PLACEMENT VIA HTTP API AT W5N5 (25,25)');
+    } else {
+        console.log('Checking available rooms for spawn placement...');
+        for (let roomName in Game.rooms) {
+            console.log(`Available room: ${roomName}`);
+        }
+    }
 }
 
-function totalFinalExtinction(room) {
-    // Total final extinction of all enemy presence
-    const enemySpawns = room.find(FIND_HOSTILE_SPAWNS);
-    const enemyTowers = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_TOWER}});
-    const enemyControllers = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_CONTROLLER}});
-    const enemyExtensions = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_EXTENSION}});
-    const enemyStorage = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_STORAGE}});
-    const enemyContainers = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_CONTAINER}});
-    const enemyLinks = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_LINK}});
-    const enemyLabs = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_LAB}});
-    const enemyExtractors = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_EXTRACTOR}});
-    const enemyFactories = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_FACTORY}});
-    const enemyPowerBanks = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_POWER_BANK}});
-    const enemyPowerSpawns = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_POWER_SPAWN}});
-    const enemyNukers = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_NUKER}});
-    const enemyObservers = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_OBSERVER}});
-    const enemyPortals = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_PORTAL}});
+function spawnWorker(spawn) {
+    const name = 'Worker' + Game.time;
+    const parts = spawn.room.energyAvailable >= 300 ? 
+        [WORK,WORK,CARRY,MOVE] :  // Efficient worker
+        [WORK,CARRY,MOVE];        // Basic worker
     
-    const totalEnemyStructures = enemySpawns.length + enemyTowers.length + enemyControllers.length + enemyExtensions.length + enemyStorage.length + enemyContainers.length + enemyLinks.length + enemyLabs.length + enemyExtractors.length + enemyFactories.length + enemyPowerBanks.length + enemyPowerSpawns.length + enemyNukers.length + enemyObservers.length + enemyPortals.length;
-    
-    if (totalEnemyStructures > 0) {
-        console.log('💥 TOTAL FINAL EXTINCTION: ' + totalEnemyStructures + ' ENEMY STRUCTURES FOR COMPLETE FINAL ELIMINATION');
-        
-        const spawns = room.find(FIND_MY_SPAWNS);
-        spawns.forEach(spawn => {
-            // Deploy final extinction forces
-            for (let i = 0; i < 30; i++) {
-                spawnFinalUnit(spawn, ROLES.FINAL, getFinalBody(ROLES.FINAL, spawn.store[RESOURCE_ENERGY]));
-            }
-            for (let i = 0; i < 25; i++) {
-                spawnFinalUnit(spawn, ROLES.TERMINAL, getFinalBody(ROLES.TERMINAL, spawn.store[RESOURCE_ENERGY]));
-            }
-            for (let i = 0; i < 20; i++) {
-                spawnFinalUnit(spawn, ROLES.OBLITERATION, getFinalBody(ROLES.OBLITERATION, spawn.store[RESOURCE_ENERGY]));
-            }
-        });
-        
-        return true;
+    if(spawn.spawnCreep(parts, name, {memory: {role: 'worker'}}) == OK) {
+        console.log('Spawning worker: ' + name + ' (' + parts.length + ' parts)');
     }
-    return false;
 }
 
-function finalEconomyWarfare(room) {
-    // Complete final economic extinction
-    const enemyControllers = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_CONTROLLER}});
-    const enemyExtensions = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_EXTENSION}});
-    const enemyContainers = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_CONTAINER}});
-    const enemyLinks = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_LINK}});
-    const enemyLabs = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_LAB}});
-    const enemyExtractors = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_EXTRACTOR}});
-    const enemyFactories = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_FACTORY}});
-    const enemyPowerBanks = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_POWER_BANK}});
-    const enemyPowerSpawns = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_POWER_SPAWN}});
-    const enemyNukers = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_NUKER}});
-    const enemyObservers = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_OBSERVER}});
-    const enemyPortals = room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_PORTAL}});
+function spawnRanger(spawn) {
+    const name = 'Ranger' + Game.time;
+    const energy = spawn.room.energyAvailable;
+    let parts;
     
-    const economicTargets = enemyControllers.length + enemyExtensions.length + enemyContainers.length + enemyLinks.length + enemyLabs.length + enemyExtractors.length + enemyFactories.length + enemyPowerBanks.length + enemyPowerSpawns.length + enemyNukers.length + enemyObservers.length + enemyPortals.length;
-    
-    if (economicTargets > 0) {
-        console.log('⚡ FINAL EXTINCTION ECONOMIC WARFARE: ' + economicTargets + ' ECONOMIC TARGETS FOR FINAL ELIMINATION');
-        
-        const spawns = room.find(FIND_MY_SPAWNS);
-        spawns.forEach(spawn => {
-            spawnFinalUnit(spawn, ROLES.SABOTEUR, getFinalBody(ROLES.SABOTEUR, spawn.store[RESOURCE_ENERGY]));
-            spawnFinalUnit(spawn, ROLES.ASSASSIN, getFinalBody(ROLES.ASSASSIN, spawn.store[RESOURCE_ENERGY]));
-        });
-        
-        return true;
+    if (energy >= 400) {
+        parts = [RANGED_ATTACK,RANGED_ATTACK,MOVE,MOVE];  // Strong ranger
+    } else if (energy >= 260) {
+        parts = [RANGED_ATTACK,MOVE,MOVE];                // Fast ranger
+    } else {
+        return; // Not enough energy
     }
-    return false;
+    
+    if(spawn.spawnCreep(parts, name, {memory: {role: 'ranger'}}) == OK) {
+        console.log('Spawning ranger: ' + name);
+    }
 }
 
-function finalExtinctionEconomy(room) {
-    // Final extinction-level war economy
-    const spawns = room.find(FIND_MY_SPAWNS);
+function spawnAttacker(spawn) {
+    const name = 'Attacker' + Game.time;
+    const energy = spawn.room.energyAvailable;
+    let parts;
     
-    spawns.forEach(spawn => {
-        if (!spawn.spawning) {
-            const harvesters = room.find(FIND_MY_CREEPS, {filter: c => c.memory.role === ROLES.HARVESTER}).length;
-            const builders = room.find(FIND_MY_CREEPS, {filter: c => c.memory.role === ROLES.BUILDER}).length;
-            const upgraders = room.find(FIND_MY_CREEPS, {filter: c => c.memory.role === ROLES.UPGRADER}).length;
-            const military = room.find(FIND_MY_CREEPS, {filter: c => 
-                c.memory.role === ROLES.GUARD || c.memory.role === ROLES.ATTACKER || 
-                c.memory.role === ROLES.BERSERKER || c.memory.role === ROLES.ASSASSIN ||
-                c.memory.role === ROLES.ANNIHILATOR || c.memory.role === ROLES.APOCALYPSE ||
-                c.memory.role === ROLES.EXTINCTION || c.memory.role === ROLES.OMEGA ||
-                c.memory.role === ROLES.TERMINAL || c.memory.role === ROLES.OBLITERATION ||
-                c.memory.role === ROLES.FINAL || c.memory.role === ROLES.RANGED ||
-                c.memory.role === ROLES.HEALER || c.memory.role === ROLES.DESTROYER
-            }).length;
-            
-            const enemies = room.find(FIND_HOSTILE_CREEPS).length;
-            const energy = spawn.store[RESOURCE_ENERGY];
-            
-            // FINAL EXTINCTION PRIORITY: Maximum final extinction force production
-            if (enemies > 0) {
-                // Total final extinction mode - only final extinction units
-                if (military < enemies * 8) { // 8:1 final extinction superiority
-                    if (energy >= 3000) {
-                        spawnFinalUnit(spawn, ROLES.FINAL, getFinalBody(ROLES.FINAL, energy));
-                    } else if (energy >= 2400) {
-                        spawnFinalUnit(spawn, ROLES.TERMINAL, getFinalBody(ROLES.TERMINAL, energy));
-                    } else if (energy >= 2000) {
-                        spawnFinalUnit(spawn, ROLES.OBLITERATION, getFinalBody(ROLES.OBLITERATION, energy));
-                    } else if (energy >= 1800) {
-                        spawnFinalUnit(spawn, ROLES.OMEGA, getFinalBody(ROLES.OMEGA, energy));
-                    } else if (energy >= 1600) {
-                        spawnFinalUnit(spawn, ROLES.EXTINCTION, getFinalBody(ROLES.EXTINCTION, energy));
-                    } else {
-                        spawnFinalUnit(spawn, ROLES.BERSERKER, getFinalBody(ROLES.BERSERKER, energy));
+    if (energy >= 390) {
+        parts = [ATTACK,ATTACK,MOVE,MOVE,MOVE];  // Strong attacker
+    } else if (energy >= 210) {
+        parts = [ATTACK,MOVE,MOVE];              // Fast attacker
+    } else {
+        return;
+    }
+    
+    if(spawn.spawnCreep(parts, name, {memory: {role: 'attacker'}}) == OK) {
+        console.log('Spawning attacker: ' + name);
+    }
+}
+
+function spawnHealer(spawn) {
+    const name = 'Healer' + Game.time;
+    const energy = spawn.room.energyAvailable;
+    let parts;
+    
+    if (energy >= 500) {
+        parts = [HEAL,HEAL,MOVE,MOVE];    // Strong healer
+    } else if (energy >= 300) {
+        parts = [HEAL,MOVE,MOVE];         // Basic healer
+    } else {
+        return;
+    }
+    
+    if(spawn.spawnCreep(parts, name, {memory: {role: 'healer'}}) == OK) {
+        console.log('Spawning healer: ' + name);
+    }
+}
+
+function buildDefenses(room, spawn) {
+    const controller = room.controller;
+    const towers = room.find(FIND_MY_STRUCTURES, {filter: {structureType: STRUCTURE_TOWER}});
+    const extensions = room.find(FIND_MY_STRUCTURES, {filter: {structureType: STRUCTURE_EXTENSION}});
+    const constructionSites = room.find(FIND_CONSTRUCTION_SITES);
+    
+    // Priority 1: Towers for defense
+    if (towers.length === 0 && controller.level >= 3 && constructionSites.filter(s => s.structureType === STRUCTURE_TOWER).length === 0) {
+        const pos = spawn.pos;
+        // Try to place tower in a defensive position
+        for(let range = 2; range <= 4; range++) {
+            for(let dx = -range; dx <= range; dx++) {
+                for(let dy = -range; dy <= range; dy++) {
+                    if(Math.abs(dx) + Math.abs(dy) !== range) continue;
+                    const x = pos.x + dx;
+                    const y = pos.y + dy;
+                    if(x > 0 && x < 49 && y > 0 && y < 49) {
+                        if(room.createConstructionSite(x, y, STRUCTURE_TOWER) === OK) {
+                            console.log(`Placing tower at ${x},${y}`);
+                            return;
+                        }
                     }
                 }
             }
-            // Peacetime final extinction economy
-            else if (harvesters < 12) {
-                spawnFinalUnit(spawn, ROLES.HARVESTER, getFinalBody(ROLES.HARVESTER, energy));
-            } else if (upgraders < 10) {
-                spawnFinalUnit(spawn, ROLES.UPGRADER, getFinalBody(ROLES.UPGRADER, energy));
-            } else if (military < 25) {
-                spawnFinalUnit(spawn, ROLES.GUARD, getFinalBody(ROLES.GUARD, energy));
-            } else if (builders < 8) {
-                spawnFinalUnit(spawn, ROLES.BUILDER, getFinalBody(ROLES.BUILDER, energy));
-            } else {
-                // Final extinction buildup for next conflict
-                spawnFinalUnit(spawn, ROLES.FINAL, getFinalBody(ROLES.FINAL, energy));
+        }
+    }
+    
+    // Priority 2: Extensions for economy
+    const maxExtensions = CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][controller.level] || 0;
+    if (extensions.length < maxExtensions && constructionSites.filter(s => s.structureType === STRUCTURE_EXTENSION).length === 0) {
+        const pos = spawn.pos;
+        // Place extensions near spawn
+        for(let range = 2; range <= 5; range++) {
+            for(let dx = -range; dx <= range; dx++) {
+                for(let dy = -range; dy <= range; dy++) {
+                    if(dx === 0 && dy === 0) continue;
+                    const x = pos.x + dx;
+                    const y = pos.y + dy;
+                    if(x > 0 && x < 49 && y > 0 && y < 49) {
+                        if(room.createConstructionSite(x, y, STRUCTURE_EXTENSION) === OK) {
+                            console.log(`Placing extension at ${x},${y}`);
+                            return;
+                        }
+                    }
+                }
             }
         }
-    });
+    }
+    
+    // Priority 3: Walls and ramparts for protection
+    if (controller.level >= 2 && towers.length > 0) {
+        buildWallsAroundSpawn(room, spawn);
+    }
 }
 
-function finalExtinctionAI(creep) {
-    // Ultimate final extinction tactical behavior
-    if (creep.memory.role === ROLES.FINAL) {
-        // Ultimate final extinction - absolute annihilation
-        const enemies = creep.room.find(FIND_HOSTILE_CREEPS);
-        if (enemies.length > 0) {
-            const target = creep.pos.findClosestByRange(enemies);
-            if (creep.attack(target) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(target, {visualizePathStyle: {stroke: '#ff0000', lineStyle: 'dashed', strokeWidth: 0.3}});
-                console.log('💀 FINAL ' + creep.name + ' FINAL EXTINCTING ' + target.name);
-            } else {
-                console.log('☠️ FINAL ' + creep.name + ' COMPLETE FINAL EXTINCTION OF ' + target.name);
-            }
-        } else {
-            // Total final structure extinction
-            const enemyStructs = creep.room.find(FIND_HOSTILE_STRUCTURES);
-            if (enemyStructs.length > 0) {
-                const target = creep.pos.findClosestByRange(enemyStructs);
-                creep.moveTo(target, {visualizePathStyle: {stroke: '#ff0000', strokeWidth: 0.3}});
-                console.log('🔥 FINAL ' + creep.name + ' TOTAL FINAL EXTINCTION OF ' + target.structureType);
-            }
-        }
-    }
-    else if (creep.memory.role === ROLES.TERMINAL) {
-        // Terminal final extinction specialists
-        const enemies = creep.room.find(FIND_HOSTILE_CREEPS);
-        if (enemies.length > 0) {
-            const target = creep.pos.findClosestByRange(enemies);
-            if (creep.attack(target) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(target, {visualizePathStyle: {stroke: '#ff1100', strokeWidth: 0.3}});
-                console.log('💥 TERMINAL ' + creep.name + ' TERMINAL EXTINCTION OF ' + target.name);
-            }
-        } else {
-            const enemyStructs = creep.room.find(FIND_HOSTILE_STRUCTURES);
-            if (enemyStructs.length > 0) {
-                const target = creep.pos.findClosestByRange(enemyStructs);
-                creep.moveTo(target, {visualizePathStyle: {stroke: '#ff1100', strokeWidth: 0.3}});
-                console.log('⚡ TERMINAL ' + creep.name + ' TERMINAL DESTRUCTION OF ' + target.structureType);
+function buildWallsAroundSpawn(room, spawn) {
+    const constructionSites = room.find(FIND_CONSTRUCTION_SITES);
+    const wallSites = constructionSites.filter(s => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART);
+    
+    if (wallSites.length > 0) return; // Already building walls
+    
+    const pos = spawn.pos;
+    const positions = [
+        {x: pos.x-2, y: pos.y-2}, {x: pos.x-1, y: pos.y-2}, {x: pos.x, y: pos.y-2}, {x: pos.x+1, y: pos.y-2}, {x: pos.x+2, y: pos.y-2},
+        {x: pos.x-2, y: pos.y+2}, {x: pos.x-1, y: pos.y+2}, {x: pos.x, y: pos.y+2}, {x: pos.x+1, y: pos.y+2}, {x: pos.x+2, y: pos.y+2},
+        {x: pos.x-2, y: pos.y-1}, {x: pos.x-2, y: pos.y}, {x: pos.x-2, y: pos.y+1},
+        {x: pos.x+2, y: pos.y-1}, {x: pos.x+2, y: pos.y}, {x: pos.x+2, y: pos.y+1}
+    ];
+    
+    for(let pos of positions) {
+        if(pos.x > 0 && pos.x < 49 && pos.y > 0 && pos.y < 49) {
+            if(room.createConstructionSite(pos.x, pos.y, STRUCTURE_WALL) === OK) {
+                console.log(`Placing wall at ${pos.x},${pos.y}`);
+                return;
             }
         }
     }
-    else if (creep.memory.role === ROLES.OBLITERATION) {
-        // Obliteration final extinction units
-        const enemyStructs = creep.room.find(FIND_HOSTILE_STRUCTURES);
-        if (enemyStructs.length > 0) {
-            const priorityTargets = enemyStructs.filter(s => 
-                s.structureType === STRUCTURE_SPAWN || 
-                s.structureType === STRUCTURE_TOWER || 
-                s.structureType === STRUCTURE_CONTROLLER ||
-                s.structureType === STRUCTURE_STORAGE ||
-                s.structureType === STRUCTURE_POWER_SPAWN ||
-                s.structureType === STRUCTURE_NUKER ||
-                s.structureType === STRUCTURE_FACTORY
-            );
-            
-            if (priorityTargets.length > 0) {
-                const target = creep.pos.findClosestByRange(priorityTargets);
-                if (creep.attack(target) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(target, {visualizePathStyle: {stroke: '#ff2200', strokeWidth: 0.3}});
-                    console.log('🌍 OBLITERATION ' + creep.name + ' COMPLETE OBLITERATION OF ' + target.structureType);
-                }
-            }
-        }
-    }
-    else if (creep.memory.role === ROLES.OMEGA) {
-        // Omega final extinction units
-        const enemies = creep.room.find(FIND_HOSTILE_CREEPS);
-        if (enemies.length > 0) {
-            const target = creep.pos.findClosestByRange(enemies);
-            if (creep.attack(target) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(target, {visualizePathStyle: {stroke: '#ff3300', strokeWidth: 0.3}});
-                console.log('💀 OMEGA ' + creep.name + ' OMEGA FINAL EXTINCTION OF ' + target.name);
-            } else {
-                console.log('☠️ OMEGA ' + creep.name + ' COMPLETE OMEGA EXTINCTION OF ' + target.name);
-            }
-        } else {
-            const enemyStructs = creep.room.find(FIND_HOSTILE_STRUCTURES);
-            if (enemyStructs.length > 0) {
-                const target = creep.pos.findClosestByRange(enemyStructs);
-                creep.moveTo(target, {visualizePathStyle: {stroke: '#ff3300', strokeWidth: 0.3}});
-                console.log('🔥 OMEGA ' + creep.name + ' TOTAL OMEGA EXTINCTION OF ' + target.structureType);
-            }
-        }
-    }
-    else if (creep.memory.role === ROLES.EXTINCTION) {
-        // Extinction final specialists
-        const enemies = creep.room.find(FIND_HOSTILE_CREEPS);
-        if (enemies.length > 0) {
-            const target = creep.pos.findClosestByRange(enemies);
-            if (creep.attack(target) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(target, {visualizePathStyle: {stroke: '#ff4400', strokeWidth: 0.3}});
-                console.log('💥 EXTINCTION ' + creep.name + ' FINAL EXTINCTION ANNIHILATION OF ' + target.name);
-            }
-        } else {
-            const enemyStructs = creep.room.find(FIND_HOSTILE_STRUCTURES);
-            if (enemyStructs.length > 0) {
-                const target = creep.pos.findClosestByRange(enemyStructs);
-                creep.moveTo(target, {visualizePathStyle: {stroke: '#ff4400', strokeWidth: 0.3}});
-                console.log('⚡ EXTINCTION ' + creep.name + ' FINAL EXTINCTION DESTRUCTION OF ' + target.structureType);
-            }
-        }
-    }
-    else if (creep.memory.role === ROLES.APOCALYPSE) {
-        // Apocalypse final extinction units
-        const enemyStructs = creep.room.find(FIND_HOSTILE_STRUCTURES);
-        if (enemyStructs.length > 0) {
-            const priorityTargets = enemyStructs.filter(s => 
-                s.structureType === STRUCTURE_SPAWN || 
-                s.structureType === STRUCTURE_TOWER || 
-                s.structureType === STRUCTURE_CONTROLLER ||
-                s.structureType === STRUCTURE_STORAGE ||
-                s.structureType === STRUCTURE_POWER_SPAWN ||
-                s.structureType === STRUCTURE_NUKER ||
-                s.structureType === STRUCTURE_FACTORY ||
-                s.structureType === STRUCTURE_LAB
-            );
-            
-            if (priorityTargets.length > 0) {
-                const target = creep.pos.findClosestByRange(priorityTargets);
-                if (creep.attack(target) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(target, {visualizePathStyle: {stroke: '#ff6600', strokeWidth: 0.3}});
-                    console.log('🌍 APOCALYPSE ' + creep.name + ' APOCALYPTIC FINAL EXTINCTION OF ' + target.structureType);
-                }
-            }
-        }
-    }
-    else if (creep.memory.role === ROLES.ANNIHILATOR) {
-        // Annihilator final extinction units
-        const enemies = creep.room.find(FIND_HOSTILE_CREEPS);
-        if (enemies.length > 0) {
-            const target = creep.pos.findClosestByRange(enemies);
-            if (creep.attack(target) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(target, {visualizePathStyle: {stroke: '#ff8800', strokeWidth: 0.3}});
-                console.log('💀 ANNIHILATOR ' + creep.name + ' COMPLETE FINAL ANNIHILATION OF ' + target.name);
-            }
-        }
-    }
-    else if (creep.memory.role === ROLES.BERSERKER) {
-        // Berserker final extinction units
-        const enemies = creep.room.find(FIND_HOSTILE_CREEPS);
-        if (enemies.length > 0) {
-            const target = creep.pos.findClosestByRange(enemies);
-            if (creep.attack(target) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(target, {visualizePathStyle: {stroke: '#ff0000', strokeWidth: 0.3}});
-                console.log('🔥 BERSERKER ' + creep.name + ' BERSERKER FINAL RAGE ON ' + target.name);
-            } else {
-                console.log('💀 BERSERKER ' + creep.name + ' FINAL BERSERKER EXTINCTION OF ' + target.name);
-            }
-        } else {
-            const enemyStructs = creep.room.find(FIND_HOSTILE_STRUCTURES);
-            if (enemyStructs.length > 0) {
-                const target = creep.pos.findClosestByRange(enemyStructs);
-                creep.moveTo(target, {visualizePathStyle: {stroke: '#ff0000', strokeWidth: 0.3}});
-                console.log('⚡ BERSERKER ' + creep.name + ' FINAL BERSERKER STRUCTURE EXTINCTION OF ' + target.structureType);
-            }
-        }
-    }
-    else if (creep.memory.role === ROLES.ASSASSIN) {
-        // Assassin final extinction units
-        const enemies = creep.room.find(FIND_HOSTILE_CREEPS);
-        if (enemies.length > 0) {
-            const target = creep.pos.findClosestByRange(enemies);
-            if (creep.attack(target) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(target, {visualizePathStyle: {stroke: '#ff6600', strokeWidth: 0.3}});
-                console.log('⚡ ASSASSIN ' + creep.name + ' FINAL ASSASSIN EXTINCTION OF ' + target.name);
-            }
-        }
-    }
-    else if (creep.memory.role === ROLES.DESTROYER) {
-        // Destroyer final extinction protocols
-        const enemyStructs = creep.room.find(FIND_HOSTILE_STRUCTURES);
-        if (enemyStructs.length > 0) {
-            const priorityTargets = enemyStructs.filter(s => 
-                s.structureType === STRUCTURE_SPAWN || 
-                s.structureType === STRUCTURE_TOWER || 
-                s.structureType === STRUCTURE_CONTROLLER ||
-                s.structureType === STRUCTURE_STORAGE ||
-                s.structureType === STRUCTURE_POWER_SPAWN ||
-                s.structureType === STRUCTURE_NUKER
-            );
-            
-            if (priorityTargets.length > 0) {
-                const target = creep.pos.findClosestByRange(priorityTargets);
-                if (creep.attack(target) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(target, {visualizePathStyle: {stroke: '#ff0000', strokeWidth: 0.3}});
-                    console.log('💥 DESTROYER ' + creep.name + ' FINAL DESTROYER EXTINCTION OF ' + target.structureType);
-                }
-            }
-        }
-    }
-    else if (creep.memory.role === ROLES.SABOTEUR) {
-        // Final extinction sabotage
-        const enemyControllers = creep.room.find(FIND_HOSTILE_STRUCTURES, {filter: {structureType: STRUCTURE_CONTROLLER}});
-        if (enemyControllers.length > 0) {
-            if (creep.attack(enemyControllers[0]) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(enemyControllers[0]);
-                console.log('⚡ SABOTEUR ' + creep.name + ' FINAL EXTINCTION SABOTAGE OF CONTROLLER');
-            }
-        }
-    }
-    else if (creep.memory.role === ROLES.SCOUT) {
-        // Final extinction intelligence
-        const enemyStructs = creep.room.find(FIND_HOSTILE_STRUCTURES);
-        if (enemyStructs.length > 0) {
-            const target = creep.pos.findClosestByRange(enemyStructs);
-            creep.moveTo(target, {visualizePathStyle: {stroke: '#ffff00', strokeWidth: 0.3}});
-            console.log('👁️ SCOUT ' + creep.name + ' FINAL EXTINCTION SPOTTING ' + target.structureType);
+}
+
+function runWorker(creep) {
+    if(creep.carry.energy == 0) {
+        // Harvest energy
+        const sources = creep.room.find(FIND_SOURCES);
+        const source = creep.pos.findClosestByPath(sources);
+        if(creep.harvest(source) == ERR_NOT_IN_RANGE) {
+            creep.moveTo(source, {visualizePathStyle: {stroke: '#ffaa00'}});
         }
     }
     else {
-        // Economic support for final extinction machine
-        if (creep.memory.role === ROLES.HARVESTER) {
-            const sources = creep.room.find(FIND_SOURCES);
-            if (sources.length > 0) {
-                const source = sources[Math.floor(Math.random() * sources.length)];
-                if (creep.harvest(source) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(source);
+        // Priority: Spawn > Extensions > Towers > Build > Upgrade
+        const targets = [
+            ...creep.room.find(FIND_MY_STRUCTURES, {filter: (s) => s.energy < s.energyCapacity && (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION)}),
+            ...creep.room.find(FIND_MY_STRUCTURES, {filter: (s) => s.energy < s.energyCapacity && s.structureType === STRUCTURE_TOWER})
+        ];
+        
+        if(targets.length > 0) {
+            const target = creep.pos.findClosestByPath(targets);
+            if(creep.transfer(target, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
+                creep.moveTo(target, {visualizePathStyle: {stroke: '#ffffff'}});
+            }
+        }
+        else {
+            const buildTargets = creep.room.find(FIND_CONSTRUCTION_SITES);
+            if(buildTargets.length > 0) {
+                // Priority: Towers > Extensions > Walls
+                const priority = buildTargets.find(s => s.structureType === STRUCTURE_TOWER) ||
+                               buildTargets.find(s => s.structureType === STRUCTURE_EXTENSION) ||
+                               buildTargets[0];
+                if(creep.build(priority) == ERR_NOT_IN_RANGE) {
+                    creep.moveTo(priority, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
             }
-        } else if (creep.memory.role === ROLES.BUILDER) {
-            const constructionSites = creep.room.find(FIND_CONSTRUCTION_SITES);
-            if (constructionSites.length > 0) {
-                if (creep.build(constructionSites[0]) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(constructionSites[0]);
-                }
-            }
-        } else if (creep.memory.role === ROLES.UPGRADER) {
-            const controller = creep.room.controller;
-            if (controller) {
-                if (creep.upgradeController(controller) === ERR_NOT_IN_RANGE) {
-                    creep.moveTo(controller);
+            else if(creep.room.controller) {
+                if(creep.upgradeController(creep.room.controller) == ERR_NOT_IN_RANGE) {
+                    creep.moveTo(creep.room.controller, {visualizePathStyle: {stroke: '#ffffff'}});
                 }
             }
         }
     }
 }
 
-module.exports.loop = function() {
-    console.log('💀 FINAL EXTINCTION AI v5.0 - FINAL BATTLE TICK: ' + Game.time);
+function runAttacker(creep) {
+    const target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    if(target) {
+        if(creep.attack(target) == ERR_NOT_IN_RANGE) {
+            creep.moveTo(target, {visualizePathStyle: {stroke: '#ff0000'}});
+        }
+    } else {
+        const structures = creep.room.find(FIND_HOSTILE_STRUCTURES);
+        if(structures.length > 0) {
+            const target = structures.find(s => s.structureType === STRUCTURE_SPAWN) ||
+                          structures.find(s => s.structureType === STRUCTURE_TOWER) ||
+                          structures[0];
+            if(creep.attack(target) == ERR_NOT_IN_RANGE) {
+                creep.moveTo(target, {visualizePathStyle: {stroke: '#ff0000'}});
+            }
+        } else {
+            // No enemies, patrol or move to center
+            const flag = Game.flags.attack;
+            if(flag) {
+                creep.moveTo(flag);
+            } else {
+                const center = new RoomPosition(25, 25, creep.room.name);
+                if(creep.pos.getRangeTo(center) > 10) {
+                    creep.moveTo(center);
+                }
+            }
+        }
+    }
+}
+
+function runRanger(creep) {
+    const target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+    if(target) {
+        const range = creep.pos.getRangeTo(target);
+        if(range <= 3) {
+            if(range > 1) {
+                creep.rangedAttack(target);
+            } else {
+                creep.rangedMassAttack();
+            }
+        }
+        
+        if(range > 3) {
+            creep.moveTo(target, {visualizePathStyle: {stroke: '#00ff00'}});
+        } else if(range < 2) {
+            // Keep distance
+            const direction = creep.pos.getDirectionTo(target);
+            const oppositeDir = ((direction + 3) % 8) + 1;
+            creep.move(oppositeDir);
+        }
+    } else {
+        const structures = creep.room.find(FIND_HOSTILE_STRUCTURES);
+        if(structures.length > 0) {
+            const target = structures.find(s => s.structureType === STRUCTURE_SPAWN) ||
+                          structures.find(s => s.structureType === STRUCTURE_TOWER) ||
+                          structures[0];
+            if(creep.pos.getRangeTo(target) <= 3) {
+                creep.rangedAttack(target);
+            }
+            if(creep.pos.getRangeTo(target) > 3) {
+                creep.moveTo(target, {visualizePathStyle: {stroke: '#00ff00'}});
+            }
+        } else {
+            // Defensive position
+            const spawn = Object.values(Game.spawns)[0];
+            if(spawn && creep.pos.getRangeTo(spawn) > 5) {
+                creep.moveTo(spawn);
+            }
+        }
+    }
+}
+
+function runHealer(creep) {
+    // Find damaged friendly creeps
+    const damaged = creep.pos.findClosestByRange(FIND_MY_CREEPS, {
+        filter: (c) => c.hits < c.hitsMax
+    });
     
-    for (const roomName in Game.rooms) {
-        const room = Game.rooms[roomName];
-        
-        // PRIORITY 1: FINAL EXTINCTION DEFENSE - SURVIVE AT ALL COSTS
-        const underAttack = finalExtinctionDefense(room);
-        if (underAttack) {
-            // Already deployed final extinction forces
+    if(damaged) {
+        if(creep.heal(damaged) == ERR_NOT_IN_RANGE) {
+            creep.moveTo(damaged, {visualizePathStyle: {stroke: '#00ff00'}});
         }
+    } else {
+        // Follow military units
+        const military = creep.pos.findClosestByRange(FIND_MY_CREEPS, {
+            filter: (c) => c.memory.role === 'attacker' || c.memory.role === 'ranger'
+        });
         
-        // PRIORITY 2: TOTAL FINAL EXTINCTION - COMPLETE FINAL ANNIHILATION
-        const finalExtinctionInProgress = totalFinalExtinction(room);
-        if (finalExtinctionInProgress) {
-            // Focus all resources on total final extinction
+        if(military && creep.pos.getRangeTo(military) > 3) {
+            creep.moveTo(military);
         }
-        
-        // PRIORITY 3: FINAL EXTINCTION ECONOMIC WARFARE - STARVE THE ENEMY
-        const finalEconomicExtinction = finalEconomyWarfare(room);
-        if (finalEconomicExtinction) {
-            // Sabotage enemy economy completely with final extinction
+    }
+}
+
+function runTowers(towers, room) {
+    for(let tower of towers) {
+        const target = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+        if(target) {
+            tower.attack(target);
+        } else {
+            // Heal damaged creeps
+            const damaged = tower.pos.findClosestByRange(FIND_MY_CREEPS, {
+                filter: (c) => c.hits < c.hitsMax
+            });
+            if(damaged) {
+                tower.heal(damaged);
+            } else {
+                // Repair structures
+                const damagedStructure = tower.pos.findClosestByRange(FIND_MY_STRUCTURES, {
+                    filter: (s) => s.hits < s.hitsMax && s.structureType !== STRUCTURE_WALL
+                });
+                if(damagedStructure) {
+                    tower.repair(damagedStructure);
+                }
+            }
         }
-        
-        // PRIORITY 4: FINAL EXTINCTION ECONOMY - MAINTAIN FINAL EXTINCTION MACHINE
-        finalExtinctionEconomy(room);
+    }
+}
+
+function scoutAndCoordinate() {
+    const spawns = Object.values(Game.spawns);
+    if(spawns.length === 0) return;
+    
+    const room = spawns[0].room;
+    const enemies = room.find(FIND_HOSTILE_CREEPS);
+    const enemyStructures = room.find(FIND_HOSTILE_STRUCTURES);
+    
+    if(enemies.length > 0) {
+        console.log(`ALERT: ${enemies.length} enemy creeps detected!`);
+        for(let enemy of enemies) {
+            console.log(`- ${enemy.name} at ${enemy.pos} (${enemy.body.length} parts, ${enemy.hits}/${enemy.hitsMax} HP)`);
+        }
     }
     
-    // FINAL EXTINCTION TACTICAL AI - TOTAL FINAL ANNIHILATION PROTOCOLS
-    for (const name in Game.creeps) {
-        const creep = Game.creeps[name];
-        finalExtinctionAI(creep);
+    if(enemyStructures.length > 0) {
+        console.log(`ALERT: ${enemyStructures.length} enemy structures detected!`);
+        const spawns = enemyStructures.filter(s => s.structureType === STRUCTURE_SPAWN);
+        if(spawns.length > 0) {
+            console.log(`Priority target: ${spawns.length} enemy spawn(s) at ${spawns[0].pos}`);
+        }
     }
-};
+}
