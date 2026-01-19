@@ -135,10 +135,10 @@ setTimeout(() => process.exit(0), 5000);
 
 #### 3. Agent 日志分析
 所有 agent 的日志文件位置：
-- workspace/kimi/logs.jsonl
-- workspace/claude/logs.jsonl  
-- workspace/gpt/logs.jsonl
-- workspace/gemini/logs.jsonl
+- agents/screeps-agent/workspace/kimi/logs.jsonl
+- agents/screeps-agent/workspace/claude/logs.jsonl  
+- agents/screeps-agent/workspace/gpt/logs.jsonl
+- agents/screeps-agent/workspace/gemini/logs.jsonl
 
 使用 ReadFile 工具读取分析。
 

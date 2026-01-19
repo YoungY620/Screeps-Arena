@@ -436,8 +436,8 @@ class Agent:
         self.interval = interval
         self.yolo = yolo
         
-        # Each agent gets own workspace
-        self.workspace = Path("workspace") / name
+        # Each agent gets own workspace (use absolute path)
+        self.workspace = Path(__file__).parent.parent.parent / "workspace" / name
         self.workspace.mkdir(parents=True, exist_ok=True)
         
         # Copy skills directory to agent workspace for isolation
@@ -602,7 +602,7 @@ async def main():
     )
     
     # 启动沙箱容器
-    workspace_root = Path("workspace")
+    workspace_root = Path(__file__).parent.parent.parent / "workspace"
     if not start_sandbox_containers(workspace_root):
         print("Failed to start sandbox containers")
         return
